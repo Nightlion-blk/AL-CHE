@@ -4,28 +4,47 @@ import { useCakeContext } from "../../../context/CakeContext";
 const BaseStyleOptions = () => {
   const { cakeState, dispatch } = useCakeContext();
 
-  const styles = [
-    {
-      id: "ROUNDED",
-      name: "Rounded Cake",
-      description: "Classic rounded edges for a soft, elegant look",
-      price: 0.0,
-    },
-    {
-      id: "FLAT",
-      name: "Flat Cake",
-      description: "Modern sharp edges for a contemporary style",
-      price: 0.0,
-    },
-  ];
+const styles = [
+  {
+    id: "ROUNDED",
+    name: "Rounded Cake",
+    path: "/models/rounded-cake.glb",
+    position: [0, 0, 0],
+    color: { primary: "#fff0f5" },
+    targetedMeshName: ["RoundedBase"],
+    textures: new Map(),
+    price: 0.0,
+    description: "Classic rounded edges for a soft, elegant look",
+  },
+  {
+    id: "FLAT",
+    name: "Flat Cake",
+    path: "/models/flat-cake.glb",
+    position: [0, 0, 0],
+    color: { primary: "#f5f5f5" },
+    targetedMeshName: ["FlatBase"],
+    textures: new Map(),
+    price: 0.0,
+    description: "Modern sharp edges for a contemporary style",
+  },
+];
 
   const handleSelectStyle = (styleId) => {
-    dispatch({ type: "SET_BASE_STYLE", payload: styleId });
+     const style = styles.find((s) => s.id === styleId);
+    dispatch({
+      type: "SET_BASE_STYLE",
+      payload: styleId,
+      cakeModelProps: style, // Pass all props needed for RenderCake
+    });
   };
 
   return (
     <div>
       <h2 className="text-xl font-semibold mb-4">SELECT BASE STYLE</h2>
+      {/* Render the 3D cake model here */}
+      <div className="flex justify-center mb-6">
+        {cakeState.cakeModel && cakeState.cakeModel.getModel()}
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {styles.map((style) => (
           <div
