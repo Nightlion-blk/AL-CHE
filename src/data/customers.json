@@ -1,0 +1,62 @@
+[
+    {
+      "name": "Customer One",
+      "email": "customer1@gmail.com",
+      "orders": 3,
+      "accountCreated": "04/01/2025"
+    },
+    {
+      "name": "Customer Two",
+      "email": "customer2@gmail.com",
+      "orders": 2,
+      "accountCreated": "04/02/2025"
+    },
+    {
+      "name": "Customer Three",
+      "email": "customer3@gmail.com",
+      "orders": 1,
+      "accountCreated": "04/03/2025"
+    },
+    {
+      "name": "customer ",
+      "email": "mariaalwin@gmail.com",
+      "orders": 2,
+      "accountCreated": "2025-04-06"
+    },
+    {
+      "name": "Xynaia",
+      "email": "xynaia_nalani@gmail.com",
+      "orders": 4,
+      "accountCreated": "2025-04-06"
+    },
+    {
+      "name": "Customer Four",
+      "email": "customer4@gmail.com",
+      "orders": 5,
+      "accountCreated": "04/04/2025"
+    },
+    {
+      "name": "Customer Five",
+      "email": "customer5@gmail.com",
+      "orders": 0,
+      "accountCreated": "04/05/2025"
+    },
+    {
+      "name": "Lian Rae",
+      "email": "lian.rae12@gmail.com",
+      "orders": 6,
+      "accountCreated": "04/06/2025"
+    },
+    {
+      "name": "Carlos Miguel",
+      "email": "carlosmiguel23@yahoo.com",
+      "orders": 3,
+      "accountCreated": "04/07/2025"
+    },
+    {
+      "name": "Ellise Tan",
+      "email": "ellise_tan99@outlook.com",
+      "orders": 2,
+      "accountCreated": "04/08/2025"
+    }
+  ]

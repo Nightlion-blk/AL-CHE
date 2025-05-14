@@ -1,0 +1,309 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Prata&display=swap');
+
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+* {
+  font-family: Outfit;
+}
+
+.prata-regular {
+  font-family: "Prata", serif;
+  font-weight: 400;
+  font-style: normal;
+}
+
+a.active hr {
+  display: block;
+}
+
+
+
+@media (max-width:640px) {
+  a.active {
+    background-color: black;
+    color: white;
+  }
+}
+
+html {
+  overflow-y: overlay; /* Enables overlay scrollbar */
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #fff4f2;
+  scrollbar-width: thin; /* For Firefox: makes the scrollbar thinner */
+  scrollbar-color: rgba(128, 128, 128, 0.8) transparent; /* Slightly darker scrollbar thumb */
+}
+
+/* For Webkit-based browsers (Chrome, Edge, Safari) */
+body::-webkit-scrollbar {
+  width: 8px; /* Width of the scrollbar */
+}
+
+body::-webkit-scrollbar-track {
+  background: transparent; /* Transparent background for the track */
+}
+
+body::-webkit-scrollbar-thumb {
+  background-color: rgba(128, 128, 128, 0.8); /* Dark gray scrollbar thumb */
+  border-radius: 4px; /* Rounded corners for the scrollbar thumb */
+  transition: background-color 0.3s ease; /* Smooth transition for hover effect */
+}
+
+body::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(96, 96, 96, 1); /* Slightly darker on hover */
+}
+
+body::-webkit-scrollbar-thumb:active {
+  background-color: rgba(64, 64, 64, 1); /* Even darker when active */
+}
+
+.hero-image {
+  max-width: 30%;
+  height: auto;
+  margin: auto;
+  transform: translateX(-20%);
+}
+
+.hero-gradient-bg {
+  background: linear-gradient(to bottom, #ffd1dc, #ffc1cc, #fc8eac);
+  width: 100%; /* Full width of the container */
+  min-height: 700px; /* Match the height of the images in slides 2 and 3 */
+  max-height: 200px; /* Ensure it doesn't exceed the height of the images */
+  margin: 0 auto; /* Center it horizontally */
+  padding: 4px; /* Add ome spacing inside */
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* Better content alignment */
+  box-sizing: border-box;
+}
+
+
+.navbar-container {
+  background-color: #ffb5c0; /* Set the background color */
+  width: 100vw; /* Ensure it spans the full viewport width */
+  height: 1;
+  color: white; /* Text color */
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+  justify-content: space-between;
+  position: fixed; /* Ensures it stays at the top */
+  top: 0;
+  left: 0;
+  z-index: 1000; /* Ensure it stays above other content */
+  transition: transform 0.3s ease-in-out; /* Smooth transition for transform */
+}
+
+.navbar-container.hidden {
+  transform: translateY(-100%); /* Slide up to hide */
+}
+
+.navbar-container.visible {
+  transform: translateY(0); /* Slide down to show */
+}
+
+.orders-page-container {
+  margin-top: 4.5rem; /* Adjust this value to move the content below the navbar */
+  padding: 1rem; /* Optional: Add some padding for better spacing */
+}
+
+.service3-img {
+  width: 5rem;
+  height: auto;
+}
+
+.product-image {
+  width: 100%;
+  height: 300px;
+  object-fit: cover;
+}
+
+.split-layout {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+}
+
+.left-section {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.background-image {
+  width: 80%;
+  height: 80%;
+  object-fit: cover;
+}
+
+.right-section {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.form-container {
+  width: 80%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  text-align: center;
+}
+
+.page-divider {
+  border: none; /* Remove default border */
+  height: 1px; /* Thickness of the line */
+  background-color: white; /* Color of the line */
+  margin: 0 0 20px 0; /* Add spacing below the line */
+  width: 100%; /* Full width of the page */
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+.transition-opacity {
+  transition: opacity 0.7s ease-in-out;
+}
+.opacity-0 {
+  opacity: 0;
+}
+.opacity-100 {
+  opacity: 1;
+}
+.transition-transform {
+  transition: transform 0.7s ease-in-out;
+}
+.translate-y-0 {
+  transform: translateY(0);
+}
+.translate-y-10 {
+  transform: translateY(10px);
+}
+
+/* Floating Modal Styles */
+.floating-modal-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.floating-modal-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+  z-index: 999;
+}
+
+.floating-modal-content {
+  position: relative;
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  width: 90%;
+  max-width: 400px;
+}
+
+.code-verification-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.code-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  text-align: center;
+}
+
+.code-description {
+  font-size: 1rem;
+  text-align: center;
+}
+
+.code-input {
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.button-group {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.verify-button,
+.cancel-button {
+  flex: 1;
+  padding: 0.5rem;
+  font-size: 1rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.verify-button {
+  background-color: #4caf50;
+  color: white;
+}
+
+.cancel-button {
+  background-color: #f44336;
+  color: white;
+}
+
+.resend-code {
+  text-align: center;
+}
+
+.resend-button,
+.resend-button-disabled {
+  background: none;
+  border: none;
+  color: #007bff;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.resend-button-disabled {
+  color: #ccc;
+  cursor: not-allowed;
+}
+
+
+
+
+
+
