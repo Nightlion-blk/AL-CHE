@@ -29,10 +29,13 @@ import ResetPasswordFlow from './components/ResetPasswordFlow';
 import PaymentSuccess from './pages/PaymentSuccess';
 import Page3d from './pages/Page3d';
 import OrderDetail from './pages/OrdersDetail';
+import Decorate from './pages/Decorate';
+import { CakeContextProvider } from './context/CakeContext'
 const App = () => {
   return (
     <Router>
       <ShopContextProvider>
+        <CakeContextProvider>
         <div className='px-4 sm:px-[5vw] md:px-[7vw] lg:px-[9vw]'>
           <ToastContainer />
           <Navbar />
@@ -41,7 +44,7 @@ const App = () => {
             <Route path='/' element={<Home />} />
             <Route path='/shop' element={<Collection />} />
             <Route path='/about' element={<About />} />
-            <Route path='/decorate' element={<Page3d />} />
+            <Route path='/decorate' element={<Decorate />} />
             <Route path='/product/:id' element={<Product1 />} />
             <Route path='/cart' element={<Cart />} />
             <Route path='/login' element={<Login />} />
@@ -64,8 +67,9 @@ const App = () => {
             
             <Route path="/payment/success" element={<PaymentSuccess />} />
           </Routes>
-          <Footer />
+          <Footer/>
         </div>
+         </CakeContextProvider>
       </ShopContextProvider>
     </Router>
   )

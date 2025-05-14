@@ -1,6 +1,18 @@
 import React, { useRef, useEffect, useState } from "react";
+import { Canvas } from "@react-three/fiber";
+import { OrbitControls } from "@react-three/drei";
 import { Undo2, Redo2, RotateCcw, ShoppingCart } from "lucide-react";
 import { useCakeContext } from "../../context/CakeContext";
+
+const Cake3D = ({ cakeState }) => {
+  // Example: simple 3D cake using a cylinder
+  return (
+    <mesh position={[0, 0, 0]}>
+      <cylinderGeometry args={[1, 1, 0.5, 32]} />
+      <meshStandardMaterial color={cakeState.cakeColor || "#d1bfa7"} />
+    </mesh>
+  );
+};
 
 const DecorationCanvas = () => {
   const canvasRef = useRef(null);
@@ -76,61 +88,23 @@ const DecorationCanvas = () => {
         </button>
       </div>
 
+      {/* 3D Scene */}
       <div
         ref={canvasRef}
-        className="bg-gray-100 rounded-lg h-[300px] md:h-[400px] flex items-center justify-center relative overflow-hidden"
+        className="bg-gray-100 rounded-lg h-[400px] flex items-center justify-center relative overflow-hidden"
       >
-        <div className="cake-display transition-all duration-300 transform-gpu">
-          {cakeState.cakeType === "THREE_TIER" && (
-            <div className="relative">
-              <div
-                className={`w-64 h-28 bg-gray-400 mx-auto ${getCakeStyle()}`}
-                style={{ backgroundColor: cakeState.cakeColor }}
-              ></div>
-              <div
-                className={`w-48 h-24 bg-gray-400 absolute left-1/2 transform -translate-x-1/2 -top-16 ${getCakeStyle()}`}
-                style={{ backgroundColor: cakeState.cakeColor }}
-              ></div>
-              <div
-                className={`w-32 h-20 bg-gray-400 absolute left-1/2 transform -translate-x-1/2 -top-28 ${getCakeStyle()}`}
-                style={{ backgroundColor: cakeState.cakeColor }}
-              ></div>
-            </div>
-          )}
-
-          {cakeState.cakeType === "TWO_TIER" && (
-            <div className="relative">
-              <div
-                className={`w-64 h-28 bg-gray-400 mx-auto ${getCakeStyle()}`}
-                style={{ backgroundColor: cakeState.cakeColor }}
-              ></div>
-              <div
-                className={`w-48 h-24 bg-gray-400 absolute left-1/2 transform -translate-x-1/2 -top-16 ${getCakeStyle()}`}
-                style={{ backgroundColor: cakeState.cakeColor }}
-              ></div>
-            </div>
-          )}
-
-          {cakeState.cakeType === "ROUND" && (
-            <div
-              className={`w-56 h-32 bg-gray-400 mx-auto ${getCakeStyle()}`}
-              style={{ backgroundColor: cakeState.cakeColor }}
-            ></div>
-          )}
-
-          {cakeState.cakeType === "SHEET" && (
-            <div
-              className={`w-64 h-40 bg-gray-400 mx-auto ${getCakeStyle()}`}
-              style={{ backgroundColor: cakeState.cakeColor }}
-            ></div>
-          )}
-
-          {cakeState.message && (
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center p-2 font-cursive text-xl">
-              {cakeState.message}
-            </div>
-          )}
-        </div>
+        <Canvas camera={{ position: [0, 2, 5], fov: 50 }}>
+          <ambientLight intensity={0.5} />
+          <directionalLight position={[5, 10, 7]} intensity={1} />
+          <OrbitControls />
+          <Cake3D cakeState={cakeState} />
+        </Canvas>
+        {/* Optionally overlay message */}
+        {cakeState.message && (
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center p-2 font-cursive text-xl pointer-events-none">
+            {cakeState.message}
+          </div>
+        )}
       </div>
     </div>
   );
