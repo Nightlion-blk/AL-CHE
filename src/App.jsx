@@ -31,45 +31,46 @@ import Page3d from './pages/Page3d';
 import OrderDetail from './pages/OrdersDetail';
 import Decorate from './pages/Decorate';
 import { CakeContextProvider } from './context/CakeContext'
+
+const YourRoutes = () => (
+  <div className='px-4 sm:px-[5vw] md:px-[7vw] lg:px-[9vw]'>
+    <ToastContainer />
+    <Navbar />
+    <SearchBar />
+    <Routes>
+      <Route path='/' element={<Home />} />
+      <Route path='/shop' element={<Collection />} />
+      <Route path='/about' element={<About />} />
+      <Route path='/decorate' element={<Decorate />} />
+      <Route path='/product/:id' element={<Product1 />} />
+      <Route path='/cart' element={<Cart />} />
+      <Route path='/login' element={<Login />} />
+      <Route path='/place-order' element={<PlaceOrder />} />
+      <Route path='/orders' element={<Orders />} />
+      <Route path='/admin' element={<AdminDashboard />} />
+      <Route path="/checkout/:cartId" element={<Checkout />} />
+      <Route path="/checkout/cancel" element={<CheckoutCancel />} />
+      <Route path="/forgotpassword" element={<ResetWrapper />} />
+      <Route path="/orders/:orderId" element={<OrderDetail />} />
+      <Route path="/verifyOtp" element={<VerifyOTP />} />
+      <Route path="/verify-code" element={<CodeVerification onNext={() => {}} onCancel={() => {}} />} />
+      <Route path="/reset-password" element={<ResetPasswordFlow />} />
+      <Route path="/homeadmin" element={<Homeadmin />} />
+      <Route path="/admin/accounts" element={<Accounts />} />
+      <Route path="/admin/orders" element={<OrdersAdmin />} />
+      <Route path="/payment/success" element={<PaymentSuccess />} />
+    </Routes>
+    <Footer />
+  </div>
+);
+
 const App = () => {
   return (
     <Router>
       <ShopContextProvider>
-        <CakeContextProvider>
-        <div className='px-4 sm:px-[5vw] md:px-[7vw] lg:px-[9vw]'>
-          <ToastContainer />
-          <Navbar />
-          <SearchBar />
-          <Routes>
-            <Route path='/' element={<Home />} />
-            <Route path='/shop' element={<Collection />} />
-            <Route path='/about' element={<About />} />
-            <Route path='/decorate' element={<Decorate />} />
-            <Route path='/product/:id' element={<Product1 />} />
-            <Route path='/cart' element={<Cart />} />
-            <Route path='/login' element={<Login />} />
-            <Route path='/place-order' element={<PlaceOrder />} />
-            <Route path='/orders' element={<Orders />} />
-            <Route path='/admin' element={<AdminDashboard />} />
-            <Route path="/checkout/:cartId" element={<Checkout />} />
-            <Route path="/checkout/cancel" element={<CheckoutCancel />} />
-            <Route path="/forgotpassword" element={<ResetWrapper />} />
-            <Route path="/orders/:orderId" element={<OrderDetail />} />
-
-            <Route path ="/verifyOtp" element={<VerifyOTP/>}/>
-            <Route path="/verify-code" element={<CodeVerification onNext={() => {}} onCancel={() => {}} />} />
-
-            <Route path="/reset-password" element={<ResetPasswordFlow />} />
-            <Route path="/homeadmin" element={<Homeadmin />} />
-
-            <Route path="/admin/accounts" element={<Accounts />} />
-            <Route path="/admin/orders" element={<OrdersAdmin />} />
-            
-            <Route path="/payment/success" element={<PaymentSuccess />} />
-          </Routes>
-          <Footer/>
-        </div>
-         </CakeContextProvider>
+      <CakeContextProvider>
+        <YourRoutes />
+      </CakeContextProvider>
       </ShopContextProvider>
     </Router>
   )

@@ -8,7 +8,7 @@ const styles = [
   {
     id: "ROUNDED",
     name: "Rounded Cake",
-    path: "/models/rounded-cake.glb",
+    path: "/tresD-SE/CAKE-B-3layer/CakeA_smooth.glb", // <-- correct path
     position: [0, 0, 0],
     color: { primary: "#fff0f5" },
     targetedMeshName: ["RoundedBase"],
@@ -16,12 +16,13 @@ const styles = [
     price: 0.0,
     description: "Classic rounded edges for a soft, elegant look",
   },
+
   {
     id: "FLAT",
     name: "Flat Cake",
-    path: "/models/flat-cake.glb",
+    path: "/tresD-SE/CAKE-B-3layer/CAKEC1layer.glb",
     position: [0, 0, 0],
-    color: { primary: "#f5f5f5" },
+    color: { primary: "#fffff" },
     targetedMeshName: ["FlatBase"],
     textures: new Map(),
     price: 0.0,
@@ -54,7 +55,7 @@ const styles = [
                 ? "border-2 border-pink-500 bg-pink-50"
                 : "border border-gray-200 hover:border-pink-300 hover:bg-pink-50"
             } rounded-lg p-6 flex flex-col items-center`}
-            onClick={() => handleSelectStyle(style.id)}
+   onClick={() => handleSelectStyle(style.id)}
           >
             <div className="h-32 w-32 bg-gray-100 rounded-lg flex items-center justify-center mb-4">
               <div

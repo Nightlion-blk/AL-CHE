@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useCakeContext } from "../../../context/CakeContext";
 
 const MessageOptions = () => {
@@ -7,6 +7,14 @@ const MessageOptions = () => {
   const [message, setMessage] = useState(cakeState.message);
   const [selectedFont, setSelectedFont] = useState("script");
   const [selectedColor, setSelectedColor] = useState("#000000");
+
+  useEffect(() => {
+    setMessage(cakeState.message || "");
+    setSelectedFont(cakeState.fontStyle || "script");
+    setSelectedColor(cakeState.messageColor || "#000000");
+
+  }, [cakeState.message, cakeState.fontStyle, cakeState.messageColor]);
+  
 
   const fontOptions = [
     { id: "script", name: "Script" },
@@ -30,7 +38,27 @@ const MessageOptions = () => {
 
   const handleApplyMessage = () => {
     dispatch({ type: "SET_MESSAGE", payload: message });
+    dispatch({ type: "SET_FONT_STYLE", payload: selectedFont });
+    dispatch({ type: "SET_MESSAGE_COLOR", payload: selectedColor });
   };
+
+  const handleFontChange = (fontId) => {
+    setSelectedFont(fontID);
+    if (message) {
+    dispatch({ type: "SET_FONT_STYLE", payload: fontID});
+  }
+  }
+  const handleColorChange = (color) => {
+    setSelectedColor(color);
+    if (message) {
+      dispatch({ type: "SET_MESSAGE_COLOR", payload: color });
+    }
+  };
+
+  const handleClearMessage = () => {
+    setMessage("");
+    dispatch({ type: "SET_MESSAGE", payload: "" });
+  }
 
   return (
     <div>
@@ -66,8 +94,7 @@ const MessageOptions = () => {
           <button
             className="text-xs text-pink-600 hover:text-pink-800"
             onClick={() => {
-              setMessage("");
-              dispatch({ type: "SET_MESSAGE", payload: "" });
+            handleClearMessage
             }}
           >
             Clear
@@ -87,7 +114,7 @@ const MessageOptions = () => {
                     ? "border-2 border-pink-500 bg-pink-50"
                     : "border border-gray-200 hover:border-pink-300 hover:bg-pink-50"
                 } rounded-lg p-3 flex items-center`}
-                onClick={() => setSelectedFont(font.id)}
+                onClick={() => handleFontChange(font.id)}
               >
                 <div className="w-6 h-6 flex items-center justify-center mr-2">
                   {selectedFont === font.id && (
@@ -123,7 +150,7 @@ const MessageOptions = () => {
                     ? "ring-2 ring-pink-500 ring-offset-2"
                     : "hover:ring-1 hover:ring-pink-300 hover:ring-offset-1"
                 } rounded-lg p-3 flex flex-col items-center`}
-                onClick={() => setSelectedColor(color.value)}
+                onClick={() => handleColorChange(color.value)}
               >
                 <div
                   className="w-6 h-6 rounded-full mb-1 border border-gray-200"
