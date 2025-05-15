@@ -72,17 +72,17 @@ const Navbar = () => {
     }
     return (
         <div className={`navbar-container text-white w-full transition-transform duration-200 ${isNavbarVisible ? 'translate-y-0' : '-translate-y-full'}`}>
-            <div className='flex items-center justify-between py-4 font-medium max-w-screen-xl mx-auto px-0'>
+            <div className='flex items-center justify-between py-4 font-medium max-w-screen-xl mx-auto px-2 sm:px-4'>
                 {/* Logo */}
-                <div className='flex items-center gap-4 ml-[-70px]'>
-                    <img src={assets.logo1} alt="logo1" className='w-12 h-12' />
-                    <div className='prata-regular text-xl sm:py-1 lg:text-2xl leading-relaxed text-[#7d333f] font-extrabold'>
+                <div className='flex items-center gap-4 ml-0 sm:ml-[-70px]'>
+                    <img src={assets.logo1} alt="logo1" className='w-10 h-10 sm:w-12 sm:h-12' />
+                    <div className='prata-regular text-lg sm:text-xl sm:py-1 lg:text-2xl leading-relaxed text-[#7d333f] font-extrabold'>
                         AL-CHE PASTRY
                     </div>
                 </div>
                 
                 {/* Main Navigation */}
-                <ul className='hidden sm:flex gap-24 text-sm'>
+                <ul className='hidden sm:flex gap-10 sm:gap-24 text-sm'>
                     <NavLink to="/" className={({isActive}) => 
                         `flex flex-col items-center gap-1 text-[#7d333f] ${isActive ? 'active-nav' : ''}`}>
                         <p>HOME</p>
@@ -106,7 +106,7 @@ const Navbar = () => {
                 </ul>
 
                 {/* Login/Profile and Icons */}
-                <div className='flex items-center gap-6'>
+                <div className='flex items-center gap-4 sm:gap-6'>
                     {/* Conditional rendering based on authentication */}
                     {token ? (
                         <div className='group relative'>
@@ -117,7 +117,7 @@ const Navbar = () => {
                             
                             {/* User Dropdown Menu */}
                             <div className='group-hover:block hidden absolute dropdown-menu right-0 pt-4 z-10'>
-                                <div className='flex flex-col gap-2 w-36 py-3 px-5 bg-slate-100 text-gray-500 rounded'>
+                                <div className='flex flex-col gap-2 w-32 sm:w-36 py-3 px-3 sm:px-5 bg-slate-100 text-gray-500 rounded'>
                                     <p onClick={() => navigate('/profile')} className='cursor-pointer hover:text-black'>My Profile</p>
                                     <p onClick={() => navigate('/orders')} className='cursor-pointer hover:text-black'>Orders</p>
                                     <p onClick={handleLogout} className='cursor-pointer hover:text-black'>Logout</p>
@@ -135,11 +135,11 @@ const Navbar = () => {
                     {/* Only show profile icon if logged in */}
                     {token && (
                         <div className='group relative'>
-                            <img className='w-5 cursor-pointer' src={assets.profile_icon} alt="Profile" />
+                            <img className='w-4 sm:w-5 cursor-pointer' src={assets.profile_icon} alt="Profile" />
                             
                             {/* Dropdown Menu */}
                             <div className='group-hover:block hidden absolute dropdown-menu right-0 pt-4 z-10'>
-                                <div className='flex flex-col gap-2 w-36 py-3 px-5 bg-slate-100 text-gray-500 rounded'>
+                                <div className='flex flex-col gap-2 w-32 sm:w-36 py-3 px-3 sm:px-5 bg-slate-100 text-gray-500 rounded'>
                                     <p onClick={() => navigate('/profile')} className='cursor-pointer hover:text-black'>My Profile</p>
                                     <p onClick={() => navigate('/orders')} className='cursor-pointer hover:text-black'>Orders</p>
                                     <p onClick={handleLogout} className='cursor-pointer hover:text-black'>Logout</p>
@@ -149,7 +149,7 @@ const Navbar = () => {
                     )}
                     
                     <Link to='/cart' className='relative'>
-                        <img className='w-6 min-w-6' src={assets.carticon} alt="Cart" />
+                        <img className='w-5 sm:w-6 min-w-5 sm:min-w-6' src={assets.carticon} alt="Cart" />
                         {getCartCount() > 0 && (
                             <p className='absolute right-[-5px] bottom-[-5px] w-4 text-center leading-4 bg-black text-white aspect-square rounded-full text-[8px]'>{getCartCount()}</p>
                         )}
@@ -157,7 +157,7 @@ const Navbar = () => {
                     
                     <img 
                         onClick={() => setVisible(true)} 
-                        className='w-5 cursor-pointer sm:hidden' 
+                        className='w-4 sm:w-5 cursor-pointer sm:hidden' 
                         src={assets.menu_icon} 
                         alt="Menu" 
                     />
@@ -165,10 +165,10 @@ const Navbar = () => {
             </div>
 
             {/* Sidebar Menu For Small Screens */}
-            <div className={`fixed top-0 right-0 bottom-0 overflow-hidden bg-white transition-all z-50 ${visible ? 'w-full' : 'w-0'}`}>
+            <div className={`fixed top-0 right-0 bottom-0 bg-white transition-all z-50 ${visible ? 'w-4/5 sm:w-1/3' : 'w-0'} overflow-x-hidden`}>
                 <div className='flex flex-col text-gray-600'>
                     <div onClick={() => setVisible(false)} className='flex items-center gap-4 p-3 '>
-                        <img className='h-4 rotate-180' src={assets.dropdown_icon} alt="Back" />
+                        <img className='h-3 sm:h-4 rotate-180' src={assets.dropdown_icon} alt="Back" />
                         <p>Back</p>
                     </div>
                     <NavLink onClick={() => setVisible(false)} to="/" className='py-2 pl-6 '>HOME</NavLink>
