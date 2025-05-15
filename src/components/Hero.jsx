@@ -13,7 +13,7 @@ const Hero = () => {
                 <div className="flex flex-col sm:flex-row items-center justify-between hero-gradient-bg min-h-screen pt-24 sm:pt-0">
                     {/* Hero Left Side */}
                     <div className="w-full sm:w-1/2 flex items-start sm:items-center justify-center sm:justify-start py-6 sm:py-0 px-4 sm:px-8">
-                        <div className="text-[#2a2929] text-left sm:text-center">
+                        <div className="text-[#2a2929] text-left sm:text-center mt-10 sm:mt-0">
                             <div className="flex items-center justify-start sm:justify-center gap-2">
                                 <p className="w-8 md:w-11 h-[2px] bg-[#7d333f]"></p>
                                 <p className="font-medium text-sm md:text-base text-[#7d333f]">OUR BESTSELLERS</p>
@@ -30,11 +30,10 @@ const Hero = () => {
                             </div>
                         </div>
                     </div>
-
                     {/* Hero Right Side */}
-                    <div className="w-full sm:w-1/2 flex justify-center items-center mt-4 sm:mt-0">
+                    <div className="w-full sm:w-1/2 flex justify-center items-center mt-0 sm:mt-0 mb-4 sm:mb-0">
                         <img
-                            className="w-4/5 max-w-xs sm:max-w-md h-auto max-h-[260px] sm:max-h-[500px] object-contain mx-auto"
+                            className="w-4/5 max-w-xs sm:max-w-md h-auto max-h-[220px] sm:max-h-[500px] object-contain mx-auto"
                             src={assets.herocake2}
                             alt="Hero Cake"
                         />
