@@ -468,6 +468,7 @@ const DecorationCanvas = () => {
               message={cakeState.message}
               color={cakeState.messageColor || "#000000"}
               fontStyle={cakeState.messageFont || "script"
+              
               }
             />
           )}
