@@ -99,7 +99,7 @@ const rebuildFromHistory = (historicalState) => {
 // Updated reducer with history management
 const cakeReducer = (state, action) => {
   switch (action.type) {
-    
+
     case "SET_BASE_STYLE":
       const style = action.cakeModelProps;
       const newState = {
@@ -183,6 +183,13 @@ const cakeReducer = (state, action) => {
   });
 }
 
+case "SET_CAKE_TOP_POSITION": {
+  return addToHistory({
+    ...state,
+    cakeTopPosition: action.payload
+  });
+}
+
 case "SET_MESSAGE_FONT": {
   return addToHistory({
     ...state,
@@ -244,6 +251,21 @@ case "SET_MESSAGE_POSITION": {
         currentIndex: -1
       };
     }
+    case "UPDATE_CAKE_PLACEMENT": {
+  return {
+    ...state,
+    cakePlacement: action.payload,  // Store under cakePlacement
+    cakeTopPosition: action.payload  // Also store under cakeTopPosition for compatibility
+  };
+}
+
+case "SET_CAKE_MESHES": {
+  return {
+    ...state,
+    cakeMeshes: action.payload
+  };
+}
+
     default:
       return state;
   }

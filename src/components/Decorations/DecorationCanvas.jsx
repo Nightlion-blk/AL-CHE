@@ -188,27 +188,30 @@ const CakeRenderer = ({ cakeModel }) => {
   const position = cakeModel.position || [0, 0, 0];
   
   React.useEffect(() => {
-  if (scene) {
-    const boundingBox = new THREE.Box3().setFromObject(scene);
-    
-    const cakePlacement = {
-      topY: boundingBox.max.y,
-      centerX: (boundingBox.min.x + boundingBox.max.x) / 2,
-      centerZ: (boundingBox.min.z + boundingBox.max.z) / 2,
-      Radius: Math.max(
-        boundingBox.max.x - boundingBox.min.x / 2,
-        boundingBox.max.z - boundingBox.min.z / 2
-      ) * 0.8
-      }
-
+    if (scene) {
+      // Create a bounding box
+      const boundingBox = new THREE.Box3().setFromObject(scene);
+      
+      // Calculate cake top position data
+      const cakePlacement = {
+        topY: boundingBox.max.y,
+        centerX: (boundingBox.max.x + boundingBox.min.x) / 2,
+        centerZ: (boundingBox.max.z + boundingBox.min.z) / 2,
+        radius: Math.min(
+          (boundingBox.max.x - boundingBox.min.x) / 2,
+          (boundingBox.max.z - boundingBox.min.z) / 2
+        ) * 0.8
+      };
+      
+      // Store in context
       dispatch({
         type: "UPDATE_CAKE_PLACEMENT",
-        payload: cakePlacement})
-          console.log("Cake placement updated:", cakePlacement);
-
-  }
-  
-}, [scene, dispatch]);
+        payload: cakePlacement
+      });
+      
+      console.log("Cake top position calculated:", cakePlacement);
+    }
+  }, [scene, dispatch]);
 
   React.useLayoutEffect(() => {
     if (scene) {
@@ -461,13 +464,13 @@ const DecorationCanvas = () => {
             />
           )}
           {cakeState.message && (
-             <TextElement
-      message={cakeState.message}
-      position={cakeState.messagePosition || [0, 2, 0]}
-      color={cakeState.messageColor || "#000000"}
-      fontStyle={cakeState.messageFont || "script"}
-          />)
-          }
+            <TextElement
+              message={cakeState.message}
+              color={cakeState.messageColor || "#000000"}
+              fontStyle={cakeState.messageFont || "script"
+              }
+            />
+          )}
         </Canvas>
       </div>
     </div>

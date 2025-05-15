@@ -37,9 +37,13 @@ const MessageOptions = () => {
   };
 
   const handleApplyMessage = () => {
+    // Don't specify position - let TextElement use cake top automatically
     dispatch({ type: "SET_MESSAGE", payload: message });
-    dispatch({ type: "SET_FONT_STYLE", payload: selectedFont });
+    dispatch({ type: "SET_MESSAGE_FONT", payload: selectedFont });
     dispatch({ type: "SET_MESSAGE_COLOR", payload: selectedColor });
+    
+    // Clear any manually set position to ensure automatic positioning is used
+    dispatch({ type: "SET_MESSAGE_POSITION", payload: null });
   };
 
   const handleFontChange = (fontId) => {
