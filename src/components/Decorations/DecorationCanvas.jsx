@@ -254,9 +254,49 @@ const CakeRenderer = ({ cakeModel }) => {
   }, [scene, dispatch]);
 
   React.useLayoutEffect(() => {
-    if (scene) {
-      scene.traverse((child) => {
-        if (child.isMesh) {
+  if (scene) {
+    scene.traverse((child) => {
+      if (child.isMesh) {
+        // Handle cream layer
+        if (child.name.includes("cream") || (cakeModel.creamMeshes && cakeModel.creamMeshes.includes(child.name))) {
+          if (cakeModel.color && cakeModel.color.cream) {
+            child.material.color.set(cakeModel.color.cream);
+          }
+          
+          // Apply cream textures
+          if (cakeModel.textureMap && cakeModel.textureMap.has("cream")) {
+            const texture = cakeModel.textureMap.get("cream");
+            if (texture) {
+              const textureLoader = new THREE.TextureLoader();
+              const loadedTexture = textureLoader.load(texture);
+              loadedTexture.repeat.set(3, 3);
+              loadedTexture.wrapS = loadedTexture.wrapT = THREE.RepeatWrapping;
+              child.material.map = loadedTexture;
+              child.material.needsUpdate = true;
+            }
+          }
+        }
+        // Handle batter
+        else if (child.name.includes("batter") || (cakeModel.batterMeshes && cakeModel.batterMeshes.includes(child.name))) {
+          if (cakeModel.color && cakeModel.color.batter) {
+            child.material.color.set(cakeModel.color.batter);
+          }
+          
+          // Apply batter textures
+          if (cakeModel.textureMap && cakeModel.textureMap.has("batter")) {
+            const texture = cakeModel.textureMap.get("batter");
+            if (texture) {
+              const textureLoader = new THREE.TextureLoader();
+              const loadedTexture = textureLoader.load(texture);
+              loadedTexture.repeat.set(3, 3);
+              loadedTexture.wrapS = loadedTexture.wrapT = THREE.RepeatWrapping;
+              child.material.map = loadedTexture;
+              child.material.needsUpdate = true;
+            }
+          }
+        }
+        // Handle other meshes (original logic)
+        else {
           const targetNames = Array.isArray(cakeModel.targetedMeshName) 
             ? cakeModel.targetedMeshName 
             : [cakeModel.targetedMeshName];
@@ -275,13 +315,15 @@ const CakeRenderer = ({ cakeModel }) => {
                 loadedTexture.repeat.set(3, 3);
                 loadedTexture.wrapS = loadedTexture.wrapT = THREE.RepeatWrapping;
                 child.material.map = loadedTexture;
+                child.material.needsUpdate = true;
               }
             }
           }
         }
-      });
-    }
-  }, [scene, cakeModel]);
+      }
+    });
+  }
+}, [scene, cakeModel]);
   
   return <primitive object={scene} position={position} />;
 };
@@ -560,8 +602,7 @@ const DecorationCanvas = () => {
               message={cakeState.message}
               color={cakeState.messageColor || "#000000"}
               fontStyle={cakeState.messageFont || "script"}
-              scale={cakeState.messageScale || 0.15} // Add this line to pass the scale
-              onClick={handleTextClick}
+              onClick={handleTextClick} // Add click handler to select text
             />
           )}
           {isTextSelected && textRef.current && (
