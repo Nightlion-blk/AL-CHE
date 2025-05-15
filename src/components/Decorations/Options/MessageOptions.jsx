@@ -7,14 +7,15 @@ const MessageOptions = () => {
   const [message, setMessage] = useState(cakeState.message);
   const [selectedFont, setSelectedFont] = useState("script");
   const [selectedColor, setSelectedColor] = useState("#000000");
+  const [fontSize, setFontSize] = useState(0.15);
+  const [selectedScale, setSelectedScale] = useState(0.15); // Default scale
 
   useEffect(() => {
     setMessage(cakeState.message || "");
     setSelectedFont(cakeState.fontStyle || "script");
     setSelectedColor(cakeState.messageColor || "#000000");
-
-  }, [cakeState.message, cakeState.fontStyle, cakeState.messageColor]);
-  
+    setSelectedScale(cakeState.messageScale || 0.15);
+  }, [cakeState.message, cakeState.fontStyle, cakeState.messageColor, cakeState.messageScale]);
 
   const fontOptions = [
     { id: "script", name: "Script" },
@@ -41,17 +42,27 @@ const MessageOptions = () => {
     dispatch({ type: "SET_MESSAGE", payload: message });
     dispatch({ type: "SET_MESSAGE_FONT", payload: selectedFont });
     dispatch({ type: "SET_MESSAGE_COLOR", payload: selectedColor });
+    dispatch({ type: "SET_MESSAGE_SCALE", payload: selectedScale }); // Fixed this line
     
     // Clear any manually set position to ensure automatic positioning is used
     dispatch({ type: "SET_MESSAGE_POSITION", payload: null });
   };
 
   const handleFontChange = (fontId) => {
-    setSelectedFont(fontID);
+    setSelectedFont(fontId);
     if (message) {
-    dispatch({ type: "SET_FONT_STYLE", payload: fontID});
-  }
-  }
+      dispatch({ type: "SET_FONT_STYLE", payload: fontId });
+    }
+  };
+
+  const handleFontSizeChange = (e) => {
+    const size = parseFloat(e.target.value);
+    setSelectedScale(size);
+    if (message) {
+      dispatch({ type: "SET_MESSAGE_SCALE", payload: size });
+    }
+  };
+
   const handleColorChange = (color) => {
     setSelectedColor(color);
     if (message) {
@@ -62,7 +73,7 @@ const MessageOptions = () => {
   const handleClearMessage = () => {
     setMessage("");
     dispatch({ type: "SET_MESSAGE", payload: "" });
-  }
+  };
 
   return (
     <div>
@@ -97,9 +108,7 @@ const MessageOptions = () => {
           </span>
           <button
             className="text-xs text-pink-600 hover:text-pink-800"
-            onClick={() => {
-            handleClearMessage
-            }}
+            onClick={handleClearMessage}
           >
             Clear
           </button>
@@ -142,6 +151,26 @@ const MessageOptions = () => {
             ))}
           </div>
         </div>
+
+            <div className="mt-4">
+  <h3 className="font-medium text-lg mb-3">Font Size</h3>
+  <div className="flex items-center">
+    <span className="mr-2 text-sm">Small</span>
+    <input
+      type="range"
+      min="0.05"
+      max="0.3"
+      step="0.01"
+      value={selectedScale}
+      onChange={handleFontSizeChange}
+      className="w-full accent-pink-500"
+    />
+    <span className="ml-2 text-sm">Large</span>
+  </div>
+  <div className="text-xs text-center mt-1 text-gray-500">
+    {(selectedScale * 100).toFixed()}%
+  </div>
+</div>
 
         <div>
           <h3 className="font-medium text-lg mb-3">Message Color</h3>

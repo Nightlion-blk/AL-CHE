@@ -1,18 +1,24 @@
-import React, { useRef, useMemo } from 'react';
+import React, { useRef, useMemo, useEffect } from 'react';
 import { Text3D } from '@react-three/drei';
 import { useCakeContext } from '../../context/CakeContext';
 import * as THREE from 'three';
 
-const TextElement = ({ 
+const TextElement = React.forwardRef(({ 
   message, 
   position,
   color = "#000000", 
   fontStyle = "script", 
-  scale = 0.15
-}) => {
+  scale = 0.15, // Default in case it's not provided
+  onClick
+}, ref) => {
   const { cakeState } = useCakeContext();
+  const groupRef = useRef();
   const textRef = useRef();
+  const boxRef = useRef();
   
+  // Forward the groupRef to the parent component
+  React.useImperativeHandle(ref, () => groupRef.current);
+
   // Get cake top position
   const finalPosition = useMemo(() => {
     const placementData = cakeState.cakePlacement || cakeState.cakeTopPosition;
@@ -30,10 +36,10 @@ const TextElement = ({
     return [0, 2, 0]; // fallback
   }, [cakeState.cakePlacement, cakeState.cakeTopPosition, position]);
 
-  // Hardcoded rotation for horizontal text on top of cake
-  // [-Math.PI/2, 0, 0] rotates text to lie flat on XZ plane
+  // Horizontal rotation for text on top of cake
   const horizontalRotation = [-Math.PI/2, 0, 0];
 
+  // Font mapping
   const fontMap = {
     script: "/fonts/Dancing_Script,Open_Sans,Pacifico,Roboto/Times-New-Roman/Times New Roman/Times New Roman Cyr_Regular.json",
     block: "/fonts/Dancing_Script,Open_Sans,Pacifico,Roboto/Times-New-Roman/Times New Roman/Times New Roman Cyr_Regular.json",
@@ -42,9 +48,54 @@ const TextElement = ({
   };
   
   const fontPath = fontMap[fontStyle] || fontMap.script;
+  
+  // Update the invisible box size after the text loads
+  useEffect(() => {
+    if (textRef.current && boxRef.current) {
+      // Get the actual size of the text
+      const box = new THREE.Box3().setFromObject(textRef.current);
+      const size = box.getSize(new THREE.Vector3());
+      
+      // Make the invisible box slightly larger than the text
+      boxRef.current.scale.set(
+        size.x * 1.1, 
+        size.y * 1.1, 
+        size.z * 1.5
+      );
+      
+      console.log("Text size updated:", size);
+    }
+  }, [message, fontStyle, scale]);
+  
+  // Handle clicks properly and prevent propagation
+  const handleClick = (e) => {
+    e.stopPropagation();         // Stop event propagation
+    console.log("Text clicked directly");
+    if (onClick) {
+      onClick(e);                // Call the parent's onClick handler
+    }
+    
+    // Prevent event from bubbling up to Canvas
+    if (e.nativeEvent) {
+      e.nativeEvent.stopImmediatePropagation();
+      e.nativeEvent.preventDefault();
+    }
+  };
 
   return message ? (
-    <group position={finalPosition} rotation={horizontalRotation}>
+    <group 
+      ref={groupRef}
+      position={finalPosition} 
+      rotation={horizontalRotation}
+      onClick={handleClick}
+    >
+      {/* Invisible box for selection */}
+      <mesh>
+        <boxGeometry args={[1, 1, 0.2]} />
+        <meshBasicMaterial transparent opacity={0.0} />
+      </mesh>
+      
+      {/* The actual text */}
       <Text3D
         ref={textRef}
         font={fontPath}
@@ -52,7 +103,7 @@ const TextElement = ({
         height={0.1}
         curveSegments={12}
         bevelEnabled={false}
-        scale={[scale, scale, scale]}
+        scale={[scale, scale, scale]} // Use the scale prop here
         center
       >
         {message}
@@ -64,6 +115,6 @@ const TextElement = ({
       </Text3D>
     </group>
   ) : null;
-};
+});
 
 export default TextElement;

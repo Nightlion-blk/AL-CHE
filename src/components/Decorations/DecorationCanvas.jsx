@@ -141,6 +141,46 @@ const ElementRenderer = React.forwardRef(({ element, index, selected, onSelect }
   );
 });
 
+const TextControls = ({ text, transformMode = 'translate', onPositionChange }) => {
+  const { scene } = useThree();
+  const transformRef = useRef();
+
+  React.useEffect(() => {
+    const controls = transformRef.current;
+    
+    if (!controls || !text) return;
+    
+    const callback = (event) => {
+      // Get orbit controls from scene.userData where we stored it
+      const orbitControls = scene.userData?.orbitControls;
+      
+      if (orbitControls) {
+        orbitControls.enabled = !event.value;
+      }
+      
+      // If dragging ended, update the position in state
+      if (!event.value && onPositionChange) {
+        const newPosition = text.position.toArray();
+        onPositionChange(newPosition);
+      }
+    };
+    
+    controls.addEventListener('dragging-changed', callback);
+    return () => controls.removeEventListener('dragging-changed', callback);
+  }, [scene, text, onPositionChange]);
+  
+  if (!text) return null;
+  
+  return (
+    <TransformControls
+      ref={transformRef}
+      object={text}
+      mode={transformMode}
+      size={0.5}
+    />
+  );
+};
+
 // Controls for the selected element
 const ElementControls = ({ selectedElement, transformMode, onPositionChange }) => {
   const { scene } = useThree();
@@ -247,8 +287,12 @@ const CakeRenderer = ({ cakeModel }) => {
 };
 
 const DecorationCanvas = () => {
+  // Create ref for orbit controls
+  const orbitControlsRef = useRef(null);
   const { cakeState, dispatch } = useCakeContext();
   const [selectedElementIndices, setSelectedElementIndices] = useState([]);
+  const [isTextSelected, setIsTextSelected] = useState(false);
+  const textRef = useRef(null);
   const [transformMode, setTransformMode] = useState('translate');
   const elementRefs = useRef([]);
   const [selectedObject, setSelectedObject] = useState(null);
@@ -318,19 +362,39 @@ const DecorationCanvas = () => {
     console.log("Canvas click event:", e);
     console.log("Object hit:", e.object ? e.object.type || "unknown type" : "no object");
     
-    // Add a timeout to prevent double processing
-    if (processingClick) return;
-    setProcessingClick(true);
+    // Add more logging to understand the click event
+    console.log("Event target path:", e.path ? [...e.path].map(el => el.type) : "no path");
+    console.log("isTextSelected before:", isTextSelected);
     
-    setTimeout(() => {
-      setProcessingClick(false);
-    }, 100);
-  
+    // IMPORTANT: Check if clicking on text or invisible mesh
+    if (e.object && (
+      e.object.userData.isText || 
+      (e.object.parent && e.object.parent.userData && e.object.parent.userData.isText)
+    )) {
+      console.log("Clicked on text, not deselecting");
+      return; // Don't deselect if clicking on text
+    }
+    
     // Only deselect if clicking on empty space
     if (!e.object || e.object.type === "Scene") {
+      console.log("Clicked on empty space, deselecting");
+      setIsTextSelected(false);
       setSelectedElementIndices([]);
     }
   };
+
+  const handleTextClick = (e) => {
+    console.log("Text clicked in DecorationCanvas");
+    e.stopPropagation();
+    setIsTextSelected(true);
+    setSelectedElementIndices([]); // Deselect other elements
+    console.log("Group ref when clicked:", e.object); // Log the clicked object
+  };
+
+  useEffect(() => {
+    console.log("Text ref updated:", textRef.current);
+    console.log("isTextSelected:", isTextSelected);
+  }, [textRef.current, isTextSelected]);
   
   return (
     <div className="relative">
@@ -412,15 +476,46 @@ const DecorationCanvas = () => {
         </div>
       )}
       
+      {/* Text controls UI - only show when text is selected */}
+      {isTextSelected && (
+        <div className="absolute top-12 right-2 z-10 bg-white p-2 rounded-lg shadow-md">
+          <div className="flex space-x-2">
+            <button 
+              onClick={() => setTransformMode('translate')}
+              className={`p-1 ${transformMode === 'translate' ? 'bg-pink-200' : 'bg-gray-100'} rounded`}
+              title="Move Text"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M5 9l4-4 4 4M9 5v14M19 15l-4 4-4-4M15 19V5"></path>
+              </svg>
+            </button>
+            <button 
+              onClick={() => setIsTextSelected(false)}
+              className="p-1 bg-red-100 rounded ml-2"
+              title="Deselect Text"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M18 6L6 18"></path>
+                <path d="M6 6l12 12"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+      
       <div className="bg-gray-100 rounded-lg h-[300px] md:h-[400px] flex items-center justify-center relative overflow-hidden">
         <Canvas 
           camera={{ position: [0, 2, 5], fov: 50 }} 
           onClick={handleCanvasClick}
+          onCreated={({ gl, camera, scene }) => {
+            // Store the scene for later use
+            scene.userData.orbitControls = orbitControlsRef.current;
+          }}
           raycaster={{ 
             params: { 
               Points: { threshold: 0.5 },
               Line: { threshold: 0.5 },
-              Mesh: { threshold: 0 }
+              Mesh: { threshold: 0.01 } // Lower threshold for better clicking
             } 
           }}
         >
@@ -428,14 +523,10 @@ const DecorationCanvas = () => {
           <ambientLight intensity={0.5} />
           <directionalLight position={[5, 10, 7]} intensity={1} />
           <OrbitControls 
+            ref={orbitControlsRef}
             minPolarAngle={Math.PI / 6} 
             maxPolarAngle={Math.PI - Math.PI / 6} 
             makeDefault
-            onCreated={(controls) => {
-              if (controls.object) {
-                controls.object.userData.orbitControls = controls;
-              }
-            }}
           />
           
           {/* Render cake model */}
@@ -465,12 +556,34 @@ const DecorationCanvas = () => {
           )}
           {cakeState.message && (
             <TextElement
+              ref={textRef}
               message={cakeState.message}
               color={cakeState.messageColor || "#000000"}
-              fontStyle={cakeState.messageFont || "script"
-              
-              }
+              fontStyle={cakeState.messageFont || "script"}
+              scale={cakeState.messageScale || 0.15} // Add this line to pass the scale
+              onClick={handleTextClick}
             />
+          )}
+          {isTextSelected && textRef.current && (
+            <>
+              {/* Debug sphere to visualize the position */}
+              <mesh position={textRef.current.position.clone()}>
+                <sphereGeometry args={[0.1]} />
+                <meshBasicMaterial color="red" />
+              </mesh>
+              
+              {/* Log the text ref */}
+              {console.log("Using text ref for controls:", textRef.current)}
+              
+              <TextControls
+                text={textRef.current}
+                transformMode={transformMode} 
+                onPositionChange={(newPosition) => {
+                  console.log("Position changed:", newPosition);
+                  dispatch({ type: "SET_MESSAGE_POSITION", payload: newPosition });
+                }}
+              />
+            </>
           )}
         </Canvas>
       </div>

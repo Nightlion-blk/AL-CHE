@@ -210,6 +210,14 @@ case "SET_MESSAGE_POSITION": {
     messagePosition: action.payload
   });
 }
+case "SET_MESSAGE_SCALE": {
+  return {
+    ...state,
+    messageScale: action.payload,
+    history: [...state.history.slice(0, state.currentIndex + 1), state],
+    currentIndex: state.currentIndex + 1
+  };
+}
     case "UNDO": {
       // No history or at the beginning
       if (state.history.length === 0 || state.currentIndex <= 0) {
@@ -259,12 +267,6 @@ case "SET_MESSAGE_POSITION": {
   };
 }
 
-case "SET_CAKE_MESHES": {
-  return {
-    ...state,
-    cakeMeshes: action.payload
-  };
-}
 
     default:
       return state;
