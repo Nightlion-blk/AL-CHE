@@ -143,15 +143,15 @@ const Product = ({ isOpen, onClose, productId }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-2 sm:p-4">
       <div 
         ref={modalRef}
-        className={`bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto relative transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
+        className={`bg-white rounded-lg w-full max-w-[95vw] sm:max-w-4xl max-h-[80vh] mt-16 sm:mt-0 overflow-y-auto relative transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
       >
         {/* Close button */}
         <button 
           onClick={onClose}
-          className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 z-10"
+          className="absolute right-2 top-2 sm:right-4 sm:top-4 text-gray-500 hover:text-gray-800 z-20"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

@@ -222,14 +222,18 @@ const Login = () => {
         >
             {/* Horizontal Line */}
             <hr className="page-divider" />
-            <div className="split-layout">
+            <div className="split-layout flex flex-col md:flex-row items-center justify-center min-h-screen bg-[#fff4f4]">
                 {/* Left Section for Image */}
-                <div className="left-section">
-                    <img src={assets.herocake2} alt="heroCake" className="background-image" />
+                <div className="left-section w-full md:w-1/2 flex justify-center items-center pt-24 md:pt-0 pb-8 md:py-0">
+                    <img
+                        src={assets.herocake2}
+                        alt="heroCake"
+                        className="w-2/3 max-w-xs md:max-w-md h-auto object-contain mx-auto"
+                    />
                 </div>
 
                 {/* Right Section for Form */}
-                <div className="right-section">
+                <div className="right-section w-full md:w-1/2 flex justify-center items-start md:items-center px-4 md:px-0 mt-[-6rem] md:mt-0">
                     <form onSubmit={onSubmitHandler} className="form-container">
                         <div className="inline-flex items-center gap-2 mb-2 mt-10">
                             <p className="prata-regular text-3xl">{currentState}</p>
@@ -357,7 +361,7 @@ const Login = () => {
             {/* Forgot Password Modal */}
             {showForgotPasswordModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-                    <div className="bg-white p-6 rounded shadow-lg w-96 relative">
+                    <div className="bg-white p-4 rounded shadow-lg w-full max-w-[95vw] sm:w-96 relative">
                         <button
                             onClick={() => {
                                 setShowForgotPasswordModal(false); // Close the modal
@@ -377,7 +381,7 @@ const Login = () => {
             {/* Privacy Consent Modal */}
             {showPrivacyConsentModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-start z-50">
-                    <div className="bg-white p-6 rounded shadow-lg w-[80rem] max-w-[70%] mt-24 relative">
+                    <div className="bg-white p-6 rounded shadow-lg w-full max-w-[95vw] sm:w-[80rem] sm:max-w-[70%] mt-20 sm:mt-24 relative max-h-[80vh] overflow-y-auto">
                         <h2 className="text-lg font-bold mb-4">Data Privacy Consent Form</h2>
                         <p className="text-sm text-gray-700 mb-4">
                             In compliance with the Data Privacy Act of 2012 (R.A. 10173), we are committed to protecting your personal data and ensuring transparency in how we handle your information.
