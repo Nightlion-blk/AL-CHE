@@ -20,7 +20,7 @@ const Hero = () => {
                                 <p className="w-8 md:w-11 h-[2px] bg-[#7d333f]"></p>
                             </div>
 
-                            <h1 className="prata-regular text-4xl sm:text-4xl lg:text-6xl leading-relaxed text-[#7d333f]">
+                            <h1 className="prata-regular text-3xl sm:text-4xl lg:text-5xl leading-relaxed text-[#7d333f]">
                                 CAKES FOR ALL OCCASIONS
                             </h1>
 
@@ -32,9 +32,9 @@ const Hero = () => {
                     </div>
 
                     {/* Hero Right Side */}
-                    <div className="w-full sm:w-1/2">
+                    <div className="w-full sm:w-1/2 flex justify-center items-center">
                         <img
-                            className="w-full h-auto max-h-[400px] sm:max-h-[500px] object-contain mx-auto"
+                            className="w-4/5 max-w-xs sm:max-w-md h-auto max-h-[300px] sm:max-h-[500px] object-contain mx-auto"
                             src={assets.herocake2}
                             alt="Hero Cake"
                         />
@@ -46,7 +46,7 @@ const Hero = () => {
             type: 'image', // Second slide: additional image 1
             content: (
                 <img
-                    className="w-full h-auto max-h-[400px] sm:max-h-[900px] object-contain mx-auto"
+                    className="w-full h-auto max-h-[400px] sm:max-h-[600px] object-fill mx-auto"
                     src={assets.cakejonah1}
                     alt="Cake Hero 1"
                 />
@@ -56,7 +56,7 @@ const Hero = () => {
             type: 'image', // Third slide: additional image 2
             content: (
                 <img
-                    className="w-full h-auto max-h-[200px] sm:max-h-[1000px] object-contain mx-auto"
+                    className="w-full h-auto max-h-[400px] sm:max-h-[600px] object-fill mx-auto"
                     src={assets.cakejonah}
                     alt="Cake Hero 2"
                 />
