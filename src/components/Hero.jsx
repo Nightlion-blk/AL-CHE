@@ -32,9 +32,9 @@ const Hero = () => {
                     </div>
 
                     {/* Hero Right Side */}
-                    <div className="w-full sm:w-1/2 flex justify-center items-center">
+                    <div className="w-full sm:w-1/2">
                         <img
-                            className="w-4/5 max-w-xs sm:max-w-md h-auto max-h-[300px] sm:max-h-[500px] object-contain mx-auto"
+                            className="w-full h-auto max-h-[400px] sm:max-h-[500px] object-contain mx-auto"
                             src={assets.herocake2}
                             alt="Hero Cake"
                         />
