@@ -3,6 +3,8 @@ import { createContext, useContext, useReducer, useState, useEffect } from "reac
 import BaseModel from "./CakeRendererClass";
 import ElementModel from "./ElementModel";
 import PropTypes from "prop-types";
+import axios from "axios";
+import { ShopContext } from "./ShopContext"; // Import ShopContext
 
 // Initial state with history tracking
 const initialState = {
@@ -95,6 +97,7 @@ const rebuildFromHistory = (historicalState) => {
     elements
   };
 };
+
 
 // Updated reducer with history management
 const cakeReducer = (state, action) => {
@@ -275,9 +278,107 @@ case "SET_MESSAGE_SCALE": {
 
 export const CakeContextProvider = ({ children }) => {
   const [cakeState, dispatch] = useReducer(cakeReducer, initialState);
+  const [token, setToken] = useState('');
+  const [userId, setUserId] = useState('');
+const API_URL = import.meta.env.VITE_API_URL
   
+  // Load token and user data from localStorage on mount
+  useEffect(() => {
+    const storedToken = localStorage.getItem('Token');
+    const storedUser = JSON.parse(localStorage.getItem('user'));
+    
+    if (storedToken) {
+      setToken(storedToken);
+    }
+    
+    if (storedUser && storedUser.id) {
+      setUserId(storedUser.id);
+    }
+  }, []);
+
+const saveCakeDesign = async (name, description = "", isPublic = false) => {
+  try {
+
+    console.log("Saving cake design with name:", token);
+    // Check for authentication
+    if (!token) {
+      throw new Error("Authentication required. Please log in.");
+    }
+
+    // Extract only the properties the backend expects
+    const payload = {
+      userId, 
+      name,
+      description,
+      isPublic,
+      // ADD THIS - explicitly include userId from context
+      
+      // Cake properties needed by backend
+      cakeModel: cakeState.cakeModel,
+      cakePlacement: cakeState.cakePlacement,
+      elements: cakeState.elements,
+      message: cakeState.message,
+      messageColor: cakeState.messageColor,
+      messageFont: cakeState.messageFont,
+      messagePosition: cakeState.messagePosition,
+      messageRotation: cakeState.messageRotation || [0, 0, 0]
+    };
+
+    console.log("Saving cake design:", name);
+    
+    const response = await axios.post(
+      `${API_URL}/createCake`,
+      payload,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+      }
+    );
+    
+    // Return the response data
+    return response.data;
+  } catch (error) {
+    console.error("Error saving cake design:", error);
+    throw error;
+  }
+}
+
+const getUserCakeDesigns = async () => {
+  try {
+    if (!token) {
+      throw new Error("Authentication required. Please log in.");
+    }
+
+    const response = await axios.get(
+      `${API_URL}/cake/${userId}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+      }
+    );
+
+    // Ensure we return an array
+    if (Array.isArray(response.data)) {
+      return response.data;
+    } else if (response.data && Array.isArray(response.data.data)) {
+      return response.data.data;
+    } else if (response.data && Array.isArray(response.data.designs)) {
+      return response.data.designs;
+    } else {
+      console.warn("Expected array not found in API response:", response.data);
+      return []; // Return empty array as fallback
+    }
+  } catch (error) {
+    console.error("Error fetching user cake designs:", error);
+    throw error;
+  }
+}
+
   return (
-    <CakeContext.Provider value={{ cakeState, dispatch }}>
+    <CakeContext.Provider value={{ cakeState, dispatch, saveCakeDesign, getUserCakeDesigns, token, userId }}>
       {children}
     </CakeContext.Provider>
   );

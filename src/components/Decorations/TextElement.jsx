@@ -81,7 +81,16 @@ const TextElement = React.forwardRef(({
       e.nativeEvent.preventDefault();
     }
   };
-
+useEffect(() => {
+  if (textRef.current) {
+    // Mark this as text for selection
+    textRef.current.traverse((object) => {
+      if (object.isMesh) {
+        object.userData.isText = true;
+      }
+    });
+  }
+}, []);
   return message ? (
     <group 
       ref={groupRef}

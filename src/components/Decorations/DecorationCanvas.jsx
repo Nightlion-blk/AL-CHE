@@ -3,8 +3,10 @@ import { Canvas, useThree } from '@react-three/fiber';
 import { Environment, OrbitControls, useGLTF, TransformControls } from '@react-three/drei';
 import { useCakeContext } from "../../context/CakeContext";
 import * as THREE from 'three';
-import { Undo2, Redo2, RotateCcw, Radius } from "lucide-react";
+import { Undo2, Redo2, RotateCcw, Radius, Copy, ClipboardPaste } from "lucide-react";
 import TextElement from './TextElement';
+import SaveButton from './SaveButton';
+
 // Create ElementRenderer with forwardRef to properly handle refs
 const ElementRenderer = React.forwardRef(({ element, index, selected, onSelect }, ref) => {
   if (!element || !element.path) return null;
@@ -50,6 +52,40 @@ const ElementRenderer = React.forwardRef(({ element, index, selected, onSelect }
   
   // Apply scale
   const scale = element.scale || [1, 1, 1];
+  
+  const [hitboxSize, setHitboxSize] = useState([1, 1, 1]);
+  const [hitboxCenter, setHitboxCenter] = useState([0, 0, 0]);
+
+  // Calculate bounding box and set hitbox size
+  React.useEffect(() => {
+    if (clonedScene) {
+      // Create temporary bounding box
+      const boundingBox = new THREE.Box3().setFromObject(clonedScene);
+      
+      // Calculate dimensions
+      const width = boundingBox.max.x - boundingBox.min.x;
+      const height = boundingBox.max.y - boundingBox.min.y;
+      const depth = boundingBox.max.z - boundingBox.min.z;
+      
+      // Calculate center offset (important for non-centered models)
+      const centerX = (boundingBox.max.x + boundingBox.min.x) / 2;
+      const centerY = (boundingBox.max.y + boundingBox.min.y) / 2;
+      const centerZ = (boundingBox.max.z + boundingBox.min.z) / 2;
+      
+      // Increase padding for easier selection
+      const padding = 2;
+      
+      // Set the hitbox size
+      setHitboxSize([
+        width * padding * Math.abs(scale[0]), 
+        height * padding * Math.abs(scale[1]), 
+        depth * padding * Math.abs(scale[2])
+      ]);
+      
+      // Set hitbox center offset
+      setHitboxCenter([centerX, centerY, centerZ]);
+    }
+  }, [clonedScene, scale]);
   
   // Make all meshes in the scene interactive - THIS IS THE IMPORTANT PART
   React.useLayoutEffect(() => {
@@ -115,28 +151,39 @@ const ElementRenderer = React.forwardRef(({ element, index, selected, onSelect }
     >
       {clonedScene && <primitive object={clonedScene} scale={scale} />}
       
-      {/* Make this helper mesh LARGER but invisible (no wireframe) */}
+      {/* Dynamic hitbox */}
       <mesh 
-        position={[0, 0, 0]} 
-        onClick={(e) => {
-          console.log("Helper mesh clicked", index);
-          e.stopPropagation();
-          onSelect(index, e);
-          e.nativeEvent.stopPropagation(); // Stop native event propagation too
-          e.nativeEvent.preventDefault(); // Prevent default
-        }}
-      >
-        <boxGeometry args={[2, 2, 2]} />
-        <meshBasicMaterial color="pink" opacity={0.0} transparent /> {/* Removed wireframe, made fully transparent */}
-      </mesh>
-      
-      {/* Keep existing selection indicator but without wireframe */}
-      {selected && (
-        <mesh position={[0, 0.5, 0]} visible={true}>
-          <boxGeometry args={[1.2, 1.2, 1.2]} />
-          <meshBasicMaterial color="pink" opacity={0.3} transparent /> {/* Removed wireframe */}
+          position={hitboxCenter} // Use the calculated center instead of [0, 0, 0]
+          onClick={(e) => {
+            console.log("Hitbox clicked for element", index);
+            e.stopPropagation();
+            onSelect(index, e);
+            e.nativeEvent.stopPropagation();
+            e.nativeEvent.preventDefault();
+          }}
+          userData={{ isHitbox: true }}
+        >
+          <boxGeometry args={hitboxSize} /> 
+          <meshBasicMaterial 
+            transparent={true} 
+            opacity={0} 
+            depthWrite={false} 
+            depthTest={true} 
+          />
         </mesh>
-      )}
+
+        {/* Selection indicator that also scales with the object */}
+        {selected && (
+          <mesh position={hitboxCenter} visible={true}>
+            <boxGeometry args={hitboxSize} />
+            <meshBasicMaterial 
+              color="pink" 
+              opacity={0.2} 
+              transparent={true} 
+              depthWrite={false} 
+            />
+          </mesh>
+        )}
     </group>
   );
 });
@@ -339,6 +386,8 @@ const DecorationCanvas = () => {
   const elementRefs = useRef([]);
   const [selectedObject, setSelectedObject] = useState(null);
   const [processingClick, setProcessingClick] = useState(false);
+  const [copiedElement, setCopiedElement] = useState(null);
+  const [pasteOffset, setPasteOffset] = useState(0); // To offset pasted elements
   
   const canUndo = cakeState.currentIndex > 0;
   const canRedo = cakeState.currentIndex < cakeState.history.length - 1;
@@ -353,6 +402,11 @@ const DecorationCanvas = () => {
   
   const handleReset = () => {
     dispatch({ type: "RESET" });
+  };
+  
+  const handleSaveComplete = (savedData) => {
+    console.log('Design saved:', savedData);
+    // Optional: Add notification or feedback logic here
   };
   
   // Create refs when elements change
@@ -399,27 +453,58 @@ const DecorationCanvas = () => {
       setSelectedElementIndices([index]);
     }
   };
-    
-  const handleCanvasClick = (e) => {
-    console.log("Canvas click event:", e);
-    console.log("Object hit:", e.object ? e.object.type || "unknown type" : "no object");
-    
-    // Add more logging to understand the click event
-    console.log("Event target path:", e.path ? [...e.path].map(el => el.type) : "no path");
-    console.log("isTextSelected before:", isTextSelected);
-    
-    // IMPORTANT: Check if clicking on text or invisible mesh
-    if (e.object && (
-      e.object.userData.isText || 
-      (e.object.parent && e.object.parent.userData && e.object.parent.userData.isText)
-    )) {
-      console.log("Clicked on text, not deselecting");
-      return; // Don't deselect if clicking on text
+   
+  const handleResetRotation = () => {
+    if (selectedElementIndices.length === 1) {
+      // Reset the rotation of the selected object
+      if (selectedObject) {
+        selectedObject.rotation.set(0, 0, 0);
+        
+        // Also update the state through dispatch
+        dispatch({
+          type: "UPDATE_ELEMENT_ROTATION",
+          index: selectedElementIndices[0],
+          rotation: [0, 0, 0]
+        });
+      }
+    } else if (isTextSelected && textRef.current) {
+      // Reset text rotation if text is selected
+      textRef.current.rotation.set(0, 0, 0);
+      
+      dispatch({
+        type: "SET_MESSAGE_ROTATION",
+        payload: [0, 0, 0]
+      });
     }
-    
-    // Only deselect if clicking on empty space
-    if (!e.object || e.object.type === "Scene") {
-      console.log("Clicked on empty space, deselecting");
+  };
+
+  const handleCanvasClick = (e) => {
+    // If we hit something
+    if (e.intersections && e.intersections.length > 0) {
+      const hitObject = e.intersections[0].object;
+      
+      console.log("Hit object:", hitObject);
+      
+      // Check if we hit a hitbox
+      if (hitObject.userData && hitObject.userData.isHitbox) {
+        // Click is already handled by the hitbox's own onClick handler
+        console.log("Hitbox already handling this click");
+        return;
+      }
+      
+      // Check if clicking on text element
+      if (hitObject.userData.isText || 
+          (hitObject.parent && hitObject.parent.userData && hitObject.parent.userData.isText)) {
+        console.log("Clicked on text");
+        return; // Text click is handled by its own handler
+      }
+      
+      // If we hit something else (cake model, etc.), deselect everything
+      setIsTextSelected(false);
+      setSelectedElementIndices([]);
+    } else {
+      // Clicked on empty space
+      console.log("Empty space clicked, deselecting all");
       setIsTextSelected(false);
       setSelectedElementIndices([]);
     }
@@ -437,6 +522,46 @@ const DecorationCanvas = () => {
     console.log("Text ref updated:", textRef.current);
     console.log("isTextSelected:", isTextSelected);
   }, [textRef.current, isTextSelected]);
+
+  const handleCopyElement = () => {
+    if (selectedElementIndices.length === 1) {
+      const elementToCopy = cakeState.elements[selectedElementIndices[0]];
+      const elementCopy = JSON.parse(JSON.stringify(elementToCopy)); // Deep clone
+      
+      // Store the copied element
+      setCopiedElement(elementCopy);
+      console.log("Element copied:", elementCopy);
+    }
+  };
+
+  const handlePasteElement = () => {
+    if (!copiedElement) return;
+    
+    // Create a new element based on the copied one
+    const newElement = {
+      ...copiedElement,
+      uniqueId: Date.now().toString(), // Ensure unique ID
+      position: [
+        copiedElement.position[0] + 0.5 + (pasteOffset * 0.25),
+        copiedElement.position[1] + 0.5 + (pasteOffset * 0.25),
+        copiedElement.position[2]
+      ]
+    };
+    
+    // Increment offset for future pastes
+    setPasteOffset(pasteOffset + 1);
+    
+    // Add the new element to the cake state
+    dispatch({
+      type: "ADD_ELEMENT",
+      payload: newElement
+    });
+    
+    // Select the newly added element
+    setTimeout(() => {
+      setSelectedElementIndices([cakeState.elements.length]);
+    }, 10);
+  };
   
   return (
     <div className="relative">
@@ -467,6 +592,20 @@ const DecorationCanvas = () => {
           aria-label="Reset"
         >
           <RotateCcw size={18} />
+        </button>
+        <button
+          className="p-2 rounded-full bg-white shadow-md text-gray-800 hover:bg-gray-100"
+          onClick={handleCopyElement}
+          aria-label="Copy"
+        >
+          <Copy size={18} />
+        </button>
+        <button
+          className="p-2 rounded-full bg-white shadow-md text-gray-800 hover:bg-gray-100"
+          onClick={handlePasteElement}
+          aria-label="Paste"
+        >
+          <ClipboardPaste size={18} />
         </button>
       </div>
       
@@ -514,6 +653,13 @@ const DecorationCanvas = () => {
                 <path d="M6 6l12 12"></path>
               </svg>
             </button>
+            <button 
+  onClick={handleResetRotation}
+  className="p-1 bg-blue-100 rounded ml-2"
+  title="Reset Rotation"
+>
+  <Radius size={18} /> {/* You're already importing this icon */}
+</button>
           </div>
         </div>
       )}
@@ -541,6 +687,24 @@ const DecorationCanvas = () => {
                 <path d="M6 6l12 12"></path>
               </svg>
             </button>
+
+             <button 
+              onClick={handleCopyElement}
+              className="p-1 bg-indigo-100 rounded ml-2"
+              title="Copy Element"
+            >
+              <Copy size={18} />
+            </button>
+
+            {copiedElement && (
+        <button 
+          onClick={handlePasteElement}
+          className="p-1 bg-green-100 rounded"
+          title="Paste Element"
+        >
+          <ClipboardPaste size={18} />
+        </button>
+      )}
           </div>
         </div>
       )}
@@ -608,9 +772,9 @@ const DecorationCanvas = () => {
           {isTextSelected && textRef.current && (
             <>
               {/* Debug sphere to visualize the position */}
-              <mesh position={textRef.current.position.clone()}>
+              <mesh position={textRef.current.position.clone()} transparency = {true}>
                 <sphereGeometry args={[0.1]} />
-                <meshBasicMaterial color="red" />
+                <meshBasicMaterial transparent={true} opacity={0.5}/>
               </mesh>
               
               {/* Log the text ref */}
@@ -627,6 +791,11 @@ const DecorationCanvas = () => {
             </>
           )}
         </Canvas>
+      </div>
+      
+      {/* Add the save button below the canvas */}
+      <div className="mt-4 flex justify-end">
+        <SaveButton onSaveComplete={handleSaveComplete} />
       </div>
     </div>
   );

@@ -8,6 +8,7 @@ import ColorOptions from "../components/Decorations/Options/ColorOptions";
 import ElementOptions from "../components/Decorations/Options/ElementOptions";
 import TopperOptions from "../components/Decorations/Options/TopperOptions";
 import MessageOptions from "../components/Decorations/Options/MessageOptions";
+import MyDesignsPanel from "../components/Decorations/Options/MyDesignsPanel";
 import { CakeContextProvider } from "../context/CakeContext";
 
 const Decorate = () => {
@@ -20,6 +21,8 @@ const Decorate = () => {
 
   const renderTabContent = () => {
     switch (activeTab) {
+      case "MY-DESIGNS":
+      return <MyDesignsPanel />;
       case "BASE-STYLE":
         return <BaseStyleOptions />;
       case "BASE":
