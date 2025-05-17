@@ -375,10 +375,12 @@ const CakeRenderer = ({ cakeModel }) => {
   return <primitive object={scene} position={position} />;
 };
 
-const DecorationCanvas = () => {
+const DecorationCanvas = React.forwardRef((props, ref) => {
   // Create ref for orbit controls
   const orbitControlsRef = useRef(null);
-  const { cakeState, dispatch } = useCakeContext();
+  const decorationCanvasRef = useRef(null);
+  const { cakeState, dispatch,  loadCakeDesign} = useCakeContext();
+   const [loadingDesign, setLoadingDesign] = useState(false);
   const [selectedElementIndices, setSelectedElementIndices] = useState([]);
   const [isTextSelected, setIsTextSelected] = useState(false);
   const textRef = useRef(null);
@@ -428,6 +430,14 @@ const DecorationCanvas = () => {
     }
   }, [selectedElementIndices, cakeState.elements]);
   
+  useEffect(() => {
+  console.log("Cake state updated:", cakeState);
+}, [cakeState]);
+
+ React.useImperativeHandle(ref, () => ({
+    loadDesign: handleLoadDesign
+  }));
+
   const handlePositionChange = (newPosition) => {
     if (selectedElementIndices.length === 1) {
       dispatch({
@@ -562,6 +572,38 @@ const DecorationCanvas = () => {
       setSelectedElementIndices([cakeState.elements.length]);
     }, 10);
   };
+
+  const handleLoadDesign = async (designId) => {
+  console.log("DecorationCanvas: handleLoadDesign called with ID:", designId);
+  try {
+    setLoadingDesign(true);
+    
+    // Call the context function to load the design
+    const design = await loadCakeDesign(designId);
+    console.log("DecorationCanvas: Design loaded:", design);
+    
+    // Reset selections
+    setSelectedElementIndices([]);
+    setIsTextSelected(false);
+    
+    // Reset camera position (optional)
+    if (orbitControlsRef.current) {
+      orbitControlsRef.current.reset();
+    }
+    
+    // Show success message
+    toast.success("Design loaded successfully");
+    
+    // Return the design so the parent component can update tabs
+    return design;
+  } catch (error) {
+    console.error("DecorationCanvas: Error loading design:", error);
+    toast.error("Failed to load design");
+    throw error;
+  } finally {
+    setLoadingDesign(false);
+  }
+};
   
   return (
     <div className="relative">
@@ -710,6 +752,11 @@ const DecorationCanvas = () => {
       )}
       
       <div className="bg-gray-100 rounded-lg h-[300px] md:h-[400px] flex items-center justify-center relative overflow-hidden">
+  {loadingDesign && (
+    <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-70 z-10">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-pink-500"></div>
+    </div>
+  )}
         <Canvas 
           camera={{ position: [0, 2, 5], fov: 50 }} 
           onClick={handleCanvasClick}
@@ -799,6 +846,6 @@ const DecorationCanvas = () => {
       </div>
     </div>
   );
-};
+});
 
 export default DecorationCanvas;

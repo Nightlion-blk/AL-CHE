@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import DecorationCanvas from "../components/Decorations/DecorationCanvas";
 import TabNav from "../components/Decorations/TabNav";
 import BaseStyleOptions from "../components/Decorations/Options/BaseStyleOptions";
@@ -9,39 +9,63 @@ import ElementOptions from "../components/Decorations/Options/ElementOptions";
 import TopperOptions from "../components/Decorations/Options/TopperOptions";
 import MessageOptions from "../components/Decorations/Options/MessageOptions";
 import MyDesignsPanel from "../components/Decorations/Options/MyDesignsPanel";
-import { CakeContextProvider } from "../context/CakeContext";
+import { CakeContextProvider, useCakeContext } from "../context/CakeContext";
 
 const Decorate = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [activeTab, setActiveTab] = useState("BASE-STYLE");
+  const decorationCanvasRef = useRef(null);
+  const { cakeState } = useCakeContext();
 
   useEffect(() => {
     setIsVisible(true);
   }, []);
 
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case "MY-DESIGNS":
-      return <MyDesignsPanel />;
-      case "BASE-STYLE":
-        return <BaseStyleOptions />;
-      case "BASE":
-        return <BaseOptions />;
-      case "FLAVOURS":
-        return <FlavourOptions />;
-      case "COLOR":
-        return <ColorOptions />;
-      case "ELEMENTS":
-        return <ElementOptions />;
-      case "TOPPER":
-        return <TopperOptions />;
-      case "MESSAGE":
-        return <MessageOptions />;
-      default:
-        return <BaseStyleOptions />;
+  // Add this function to determine which tabs should be enabled
+  const updateTabsForLoadedDesign = (design) => {
+    // First, activate the BASE-STYLE tab since a cake model was loaded
+    setActiveTab("ELEMENTS");
+  };
+
+  // Update your handler to update tabs after loading design
+  const handleDesignSelect = (designId) => {
+    if (decorationCanvasRef.current) {
+      // Show loading state
+      decorationCanvasRef.current
+        .loadDesign(designId)
+        .then(() => {
+          // Once loading completes, update tabs based on loaded design
+          // Automatically switch to ELEMENTS tab for a better user experience
+          setActiveTab("ELEMENTS");
+        })
+        .catch((error) => {
+          console.error("Error loading design:", error);
+        });
     }
   };
 
+  const renderTabContent = () => {
+  switch (activeTab) {
+    case "BASE-STYLE":
+      return <BaseStyleOptions />;
+    case "BASE":
+      return <BaseOptions />;
+    case "FLAVOURS":
+      return <FlavourOptions />;
+    case "COLOR":
+      return <ColorOptions />;
+    case "ELEMENTS":
+      return <ElementOptions />;
+    case "TOPPER":  // Changed from TOPPERS to match TabNav
+      return <TopperOptions />;
+    case "MESSAGE":
+      return <MessageOptions />;
+    case "MY-DESIGNS":
+      return <MyDesignsPanel onDesignSelect={handleDesignSelect} />;
+    default:
+      return <BaseStyleOptions />;
+  }
+};
   return (
     <CakeContextProvider>
       <div
@@ -61,7 +85,7 @@ const Decorate = () => {
 
         <div className="mt-10 max-w-5xl mx-auto">
           <div className="bg-gray-100 p-4 rounded-lg shadow-md">
-            <DecorationCanvas />
+            <DecorationCanvas ref={decorationCanvasRef} />
 
             <div className="mt-4">
               <TabNav activeTab={activeTab} setActiveTab={setActiveTab} />

@@ -3,7 +3,7 @@ import PropTypes from "prop-types";
 import { useCakeContext } from "../../context/CakeContext";
 
 const TabNav = ({ activeTab, setActiveTab }) => {
-  const { cakeState, token } = useCakeContext(); // Add token from context
+  const { cakeState, token } = useCakeContext();
   
   const tabs = [
     "BASE-STYLE",
@@ -13,12 +13,13 @@ const TabNav = ({ activeTab, setActiveTab }) => {
     "ELEMENTS",
     "TOPPER",
     "MESSAGE",
-    "MY-DESIGNS", // Add the new tab
+    "MY-DESIGNS",
   ];
 
   const handleTabClick = (tab) => {
     // Allow BASE-STYLE and MY-DESIGNS to be accessed without a base style
-    if (tab === "BASE-STYLE" || tab === "MY-DESIGNS" || cakeState.baseStyle) {
+    // Also allow any tab if cakeModel exists
+    if (tab === "BASE-STYLE" || tab === "MY-DESIGNS" || cakeState.baseStyle || cakeState.cakeModel) {
       setActiveTab(tab);
     }
   };
@@ -26,10 +27,10 @@ const TabNav = ({ activeTab, setActiveTab }) => {
   return (
     <div className="flex w-full flex-wrap">
       {tabs.map((tab) => {
-        // MY-DESIGNS is only disabled if not logged in
+        // UPDATED LOGIC HERE: Enable tabs if either baseStyle or cakeModel exists
         const isDisabled = 
           (tab === "MY-DESIGNS" && !token) || 
-          (tab !== "BASE-STYLE" && tab !== "MY-DESIGNS" && !cakeState.baseStyle);
+          (tab !== "BASE-STYLE" && tab !== "MY-DESIGNS" && !cakeState.baseStyle && !cakeState.cakeModel);
 
         return (
           <button

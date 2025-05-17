@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useCakeContext } from '../../../context/CakeContext';
 import { Eye, Trash2, Clock } from 'lucide-react';
+import { toast } from 'react-toastify'; // Add this import
 
-const MyDesignsPanel = () => {
+// Update props to receive setActiveTab
+const MyDesignsPanel = ({ setActiveTab, onDesignSelect }) => {
   const { getUserCakeDesigns, loadCakeDesign, deleteCakeDesign, token } = useCakeContext();
   const [designs, setDesigns] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -12,14 +14,28 @@ const MyDesignsPanel = () => {
     const fetchDesigns = async () => {
       try {
         setLoading(true);
-        const designsData = await getUserCakeDesigns();
-        console.log("API Response:", designsData);
+        const response = await getUserCakeDesigns();
+        console.log("API Response:", response);
 
-        setDesigns(designsData);
+        // Make sure we handle different response formats
+        let designsArray = [];
+        
+        if (Array.isArray(response)) {
+          designsArray = response;
+        } else if (response && response.data && Array.isArray(response.data)) {
+          designsArray = response.data;
+        } else if (response && Array.isArray(response.designs)) {
+          designsArray = response.designs;
+        } else {
+          console.warn("Could not find designs array in response:", response);
+        }
+        
+        setDesigns(designsArray); // Always set an array
         setError(null);
       } catch (err) {
         setError('Failed to load designs. Please try again.');
         console.error(err);
+        setDesigns([]); // Ensure designs is reset to an empty array
       } finally {
         setLoading(false);
       }
@@ -27,19 +43,30 @@ const MyDesignsPanel = () => {
     
     if (token) {
       fetchDesigns();
+    } else {
+      setDesigns([]); // Reset designs if not logged in
     }
   }, [getUserCakeDesigns, token]);
   
-  const handleLoadDesign = async (designId) => {
-    try {
+ const handleLoadDesign = async (designId) => {
+  try {
+    console.log("MyDesignsPanel: Loading design with ID:", designId);
+    
+    // Call the parent handler instead of loadCakeDesign directly
+    if (onDesignSelect) {
+      onDesignSelect(designId);
+    } else {
+      // Try direct loading if parent handler isn't available
+      console.warn("MyDesignsPanel: onDesignSelect not provided, trying direct loading");
       setLoading(true);
       await loadCakeDesign(designId);
       setLoading(false);
-    } catch (err) {
-      setError('Failed to load design');
-      setLoading(false);
     }
-  };
+  } catch (err) {
+    console.error("Error loading design:", err);
+    setError('Failed to load design');
+  }
+};
   
   const handleDeleteDesign = async (e, designId) => {
     e.stopPropagation(); // Prevent triggering the parent click
@@ -93,11 +120,14 @@ const MyDesignsPanel = () => {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[400px] overflow-y-auto p-1">
           {designs.map((design) => (
-            <div 
-              key={design._id} 
-              className="border rounded-lg overflow-hidden cursor-pointer hover:border-pink-300 transition-colors"
-              onClick={() => handleLoadDesign(design._id)}
-            >
+           <div 
+  key={design._id} 
+  className="border rounded-lg overflow-hidden cursor-pointer hover:border-pink-300 transition-colors"
+  onClick={() => {
+    console.log("Design clicked:", design._id);
+    handleLoadDesign(design._id);
+  }}
+>
               <div className="h-24 bg-gray-100 flex items-center justify-center">
                 {/* This would ideally be a thumbnail of the cake */}
                 <div className="text-gray-400 text-sm">Cake Preview</div>

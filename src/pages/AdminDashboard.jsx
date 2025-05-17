@@ -7,6 +7,7 @@ import AddProduct from "../components/AddProduct";
 import axios from "axios";
 import { toast } from "react-toastify";
 import OrdersAdmin from "../pages/OrdersAdmin";
+import CakeDesigns from '../components/CakeDesigns';
 
 // Imported images from src/assets
 import footerimg from "../assets/footerimg.jpg";
@@ -283,6 +284,8 @@ const AdminDashboard = () => {
           <button className={`header-button ${selectedTab === "Product" ? "active" : ""}`} onClick={() => setSelectedTab("Product")}>Product</button>
           <button className={`header-button ${selectedTab === "Accounts" ? "active" : ""}`} onClick={() => setSelectedTab("Accounts")}>Accounts</button>
           <button className={`header-button ${selectedTab === "Orders" ? "active" : ""}`} onClick={() => setSelectedTab("Orders")}>Orders</button>
+          {/* Add this new button */}
+          <button className={`header-button ${selectedTab === "CakeDesigns" ? "active" : ""}`} onClick={() => setSelectedTab("CakeDesigns")}>Cake Designs</button>
         </div>
         <div className="user-account">
           <button className="user-icon" onClick={toggleUserAccount}>
@@ -506,6 +509,13 @@ const AdminDashboard = () => {
       {selectedTab === "Orders" && (
         <div className="orders-section">
           <OrdersAdmin />
+        </div>
+      )}
+
+      {/* Cake Designs Tab */}
+      {selectedTab === "CakeDesigns" && (
+        <div className="cake-designs-section">
+          <CakeDesigns />
         </div>
       )}
     </div>

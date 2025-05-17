@@ -1,6 +1,5 @@
-// Add useState and useEffect to your imports
 import { createContext, useContext, useReducer, useState, useEffect } from "react";
-import BaseModel from "./CakeRendererClass";
+import { RenderCake, BaseModel } from '../models/CakeModels';
 import ElementModel from "./ElementModel";
 import PropTypes from "prop-types";
 import axios from "axios";
@@ -16,33 +15,6 @@ const initialState = {
   // History management
   history: [], // Array of past states
   currentIndex: -1, // Current position in history
-};
-
-export const RenderCake = (name, path, position, color, targetedMeshName, textures, price, text) => {
-  const cakeModel = new BaseModel(path);
-  cakeModel.setName(name);
-  cakeModel.setPosition(position);
-  cakeModel.setColor(color);
-  cakeModel.setTargetedMeshName(targetedMeshName);
-  cakeModel.setPath(path);
-  cakeModel.setPrice(price);
-  cakeModel.setTextures(textures);
-  if (text) {
-    cakeModel.setText(text); // Add text if provided
-  }
-  cakeModel.getProperties = function() {
-    return {
-      name: this.name,
-      position: this.position,
-      color: this.color,
-      targetedMeshName: this.targetedMeshName,
-      text: this.text,
-      price: this.price,
-      path: this.path,
-      textures: this.textureMap,
-    };
-  };
-  return cakeModel;
 };
 
 const CakeContext = createContext(undefined);
@@ -140,6 +112,11 @@ const cakeReducer = (state, action) => {
         );
       }
       return addToHistory(newState1);
+    case "SET_CAKE_MODEL":
+    return {
+    ...state,
+    cakeModel: action.payload
+    };
     case "SET_CAKE_COLOR":
       return addToHistory({ ...state, cakeColor: action.payload });
     case "SET_FLAVOUR":
@@ -270,7 +247,46 @@ case "SET_MESSAGE_SCALE": {
   };
 }
 
-
+case "SET_LOADING": {
+  return {
+    ...state,
+    isLoading: action.payload
+  };
+}
+    case "SET_ELEMENTS": {
+  if (!Array.isArray(action.payload)) {
+    console.warn("SET_ELEMENTS received non-array payload:", action.payload);
+    return {
+      ...state,
+      elements: []
+    };
+  }
+  
+  // Convert plain objects to ElementModel instances
+  const elements = action.payload.map(element => {
+    if (element instanceof ElementModel) {
+      return element;
+    }
+    
+    const model = new ElementModel(element.path || "");
+    model.uniqueId = element.uniqueId || Date.now() + Math.random().toString(36).substring(2);
+    
+    // Set properties if they exist
+    if (element.name) model.setName(element.name);
+    if (element.position) model.setPosition(element.position);
+    if (element.color) model.setColor(element.color);
+    if (element.targetedMeshName) model.setTargetedMeshName(element.targetedMeshName);
+    if (element.price !== undefined) model.setPrice(element.price);
+    if (element.scale) model.setScale(element.scale);
+    
+    return model;
+  });
+  
+  return {
+    ...state,
+    elements: elements
+  };
+}
     default:
       return state;
   }
@@ -347,6 +363,7 @@ const saveCakeDesign = async (name, description = "", isPublic = false) => {
 
 const getUserCakeDesigns = async () => {
   try {
+    // Check for authentication
     if (!token) {
       throw new Error("Authentication required. Please log in.");
     }
@@ -360,25 +377,108 @@ const getUserCakeDesigns = async () => {
       }
     );
 
-    // Ensure we return an array
-    if (Array.isArray(response.data)) {
-      return response.data;
-    } else if (response.data && Array.isArray(response.data.data)) {
-      return response.data.data;
-    } else if (response.data && Array.isArray(response.data.designs)) {
-      return response.data.designs;
-    } else {
-      console.warn("Expected array not found in API response:", response.data);
-      return []; // Return empty array as fallback
-    }
+    return response.data;
   } catch (error) {
     console.error("Error fetching user cake designs:", error);
     throw error;
   }
 }
 
+const loadCakeDesign = async (designId) => {
+  try {
+    console.log("CakeContext: Loading design with ID:", designId);
+    
+    if (!token) {
+      throw new Error("Authentication required. Please log in.");
+    }
+    
+    // Set loading state
+    dispatch({ type: "SET_LOADING", payload: true });
+    
+    // Updated URL to use the correct endpoint (adjust path if needed)
+    const response = await axios.get(
+      `${API_URL}/userCake/${designId}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+      }
+    );
+    
+    // The controller returns { success: true, data: design }
+    const responseData = response.data;
+    console.log("CakeContext: Raw API response:", responseData);
+    
+    // Check if we have valid data
+    if (!responseData.success || !responseData.data) {
+      throw new Error("Invalid design data received");
+    }
+    
+    // Extract the design data from response.data.data
+    const design = responseData.data;
+    console.log("CakeContext: Design data:", design);
+    
+    // Update cake model
+    if (design.cakeModel && design.cakeModel.path) {
+      console.log("CakeContext: Setting cake model:", design.cakeModel);
+      
+      // Create a proper model instance instead of using the raw API data
+        const cakeModelInstance = RenderCake(
+        design.cakeModel.name || "Loaded Cake",
+        design.cakeModel.path,
+        design.cakeModel.position || [0, 0, 0],
+        design.cakeModel.color || { r: 1, g: 1, b: 1 },
+        design.cakeModel.targetedMeshName || ["Cake"],
+        design.cakeModel.textureMap || {},
+        design.cakeModel.price || 0,
+        design.message || ""
+      );
+      
+      // Dispatch with the proper instance
+      dispatch({ type: "SET_CAKE_MODEL", payload: cakeModelInstance });
+    } else {
+      console.warn("CakeContext: Design has no valid cakeModel");
+    }
+    
+    // The rest of your existing code...
+    // Update cake placement
+    if (design.cakePlacement) {
+      dispatch({ type: "UPDATE_CAKE_PLACEMENT", payload: design.cakePlacement });
+    }
+    
+    // Update elements
+    if (Array.isArray(design.elements)) {
+      console.log("CakeContext: Setting elements:", design.elements);
+      dispatch({ type: "SET_ELEMENTS", payload: design.elements });
+    } else {
+      dispatch({ type: "SET_ELEMENTS", payload: [] });
+    }
+    
+    // Update message properties
+    if (design.message !== undefined) {
+      dispatch({ type: "UPDATE_MESSAGE", payload: design.message });
+    }
+    
+    if (design.messagePosition && design.messagePosition.length === 3) {
+      dispatch({ type: "SET_MESSAGE_POSITION", payload: design.messagePosition });
+    }
+    
+    if (design.messageRotation && design.messageRotation.length === 3) {
+      dispatch({ type: "SET_MESSAGE_ROTATION", payload: design.messageRotation });
+    }
+    
+    // Reset loading state
+    dispatch({ type: "SET_LOADING", payload: false });
+    
+    return design;
+  } catch (error) {
+    console.error("Error loading cake design:", error);
+    dispatch({ type: "SET_LOADING", payload: false });
+    throw error;
+  }
+};
   return (
-    <CakeContext.Provider value={{ cakeState, dispatch, saveCakeDesign, getUserCakeDesigns, token, userId }}>
+    <CakeContext.Provider value={{ cakeState, dispatch, saveCakeDesign, getUserCakeDesigns, loadCakeDesign, token, userId }}>
       {children}
     </CakeContext.Provider>
   );
