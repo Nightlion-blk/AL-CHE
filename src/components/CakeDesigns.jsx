@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import CakeDesignViewer from './CakeDesignViewer';
+import { useCakeContext } from '../context/CakeContext'; // Add this import
 
 const CakeDesigns = () => {
-    
+  const { /* your context values here */ } = useCakeContext(); // Destructure your context values here
+  
   const [designs, setDesigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDesign, setSelectedDesign] = useState(null);
@@ -161,7 +163,7 @@ const CakeDesigns = () => {
                 <div 
                     key={design._id} 
                     onClick={() => (
-                        console.log("Design clicked:", design._id),
+                        console.log("Design clicked:", design),
                         fetchDesignByID(design._id))}
                     className="bg-white rounded-lg shadow overflow-hidden transition duration-150 ease-in-out transform hover:-translate-y-1 hover:shadow-lg cursor-pointer"
                 >
