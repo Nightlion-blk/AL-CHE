@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useCakeContext } from '../../../context/CakeContext';
-import { Eye, Trash2, Clock } from 'lucide-react';
-import { toast } from 'react-toastify'; // Add this import
+import { Eye, Trash2, Clock, Receipt } from 'lucide-react'; // Add Receipt icon
+import { toast } from 'react-toastify';
+import ReceiptComponent from '../Receipt'; // Import the Receipt component
 
 // Update props to receive setActiveTab
 const MyDesignsPanel = ({ setActiveTab, onDesignSelect }) => {
@@ -9,6 +10,8 @@ const MyDesignsPanel = ({ setActiveTab, onDesignSelect }) => {
   const [designs, setDesigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showReceipt, setShowReceipt] = useState(false);
+  const [selectedDesignForReceipt, setSelectedDesignForReceipt] = useState(null);
   
   useEffect(() => {
     const fetchDesigns = async () => {
@@ -23,11 +26,18 @@ const MyDesignsPanel = ({ setActiveTab, onDesignSelect }) => {
         if (Array.isArray(response)) {
           designsArray = response;
         } else if (response && response.data && Array.isArray(response.data)) {
+          // This is the format we're getting from the API: {success: true, count: 3, data: Array(3)}
           designsArray = response.data;
+          console.log("Found designs in response.data:", designsArray.length);
         } else if (response && Array.isArray(response.designs)) {
           designsArray = response.designs;
         } else {
           console.warn("Could not find designs array in response:", response);
+        }
+        
+        // Log the first design to check if it has previewImage
+        if (designsArray.length > 0) {
+          console.log("First design preview available:", !!designsArray[0].previewImage);
         }
         
         setDesigns(designsArray); // Always set an array
@@ -81,6 +91,12 @@ const MyDesignsPanel = ({ setActiveTab, onDesignSelect }) => {
     }
   };
   
+  const handleShowReceipt = (e, design) => {
+    e.stopPropagation(); // Prevent triggering the parent click handler
+    setSelectedDesignForReceipt(design);
+    setShowReceipt(true);
+  };
+  
   if (!token) {
     return (
       <div className="bg-white p-6 rounded-b-lg shadow-md text-center">
@@ -118,31 +134,54 @@ const MyDesignsPanel = ({ setActiveTab, onDesignSelect }) => {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[400px] overflow-y-auto p-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 max-h-[500px] overflow-y-auto p-1">
           {designs.map((design) => (
-           <div 
-  key={design._id} 
-  className="border rounded-lg overflow-hidden cursor-pointer hover:border-pink-300 transition-colors"
-  onClick={() => {
-    console.log("Design clicked:", design._id);
-    handleLoadDesign(design._id);
-  }}
->
-              <div className="h-24 bg-gray-100 flex items-center justify-center">
-                {/* This would ideally be a thumbnail of the cake */}
-                <div className="text-gray-400 text-sm">Cake Preview</div>
+            <div 
+              key={design._id} 
+              className="border rounded-lg overflow-hidden cursor-pointer hover:border-pink-300 transition-all hover:shadow-md"
+              onClick={() => {
+                console.log("Design clicked:", design._id);
+                handleLoadDesign(design._id);
+              }}
+            >
+              <div className="h-32 bg-gray-100 flex items-center justify-center overflow-hidden">
+                {design.previewImage ? (
+                  <img 
+                    src={design.previewImage} 
+                    alt={`${design.name} preview`}
+                    className="h-full w-full object-contain" 
+                    onError={(e) => {
+                      console.error("Image failed to load");
+                      e.target.onerror = null;
+                      e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23f3f4f6'/%3E%3Ctext x='50' y='50' font-family='Arial' font-size='12' fill='%239ca3af' text-anchor='middle' dominant-baseline='middle'%3ENo Image%3C/text%3E%3C/svg%3E";
+                    }}
+                  />
+                ) : (
+                  <div className="text-gray-400 text-sm">No Preview Available</div>
+                )}
               </div>
               
               <div className="p-3">
                 <div className="flex justify-between items-start">
                   <h3 className="font-medium">{design.name}</h3>
-                  <button 
-                    onClick={(e) => handleDeleteDesign(e, design._id)}
-                    className="text-red-500 hover:text-red-700"
-                    aria-label="Delete design"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                  <div className="flex space-x-2">
+                    {/* Receipt button */}
+                    <button 
+                      onClick={(e) => handleShowReceipt(e, design)}
+                      className="text-blue-500 hover:text-blue-700"
+                      aria-label="View receipt"
+                    >
+                      <Receipt size={16} />
+                    </button>
+                    {/* Existing delete button */}
+                    <button 
+                      onClick={(e) => handleDeleteDesign(e, design._id)}
+                      className="text-red-500 hover:text-red-700"
+                      aria-label="Delete design"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 </div>
                 
                 <p className="text-gray-500 text-xs truncate mt-1">
@@ -157,6 +196,15 @@ const MyDesignsPanel = ({ setActiveTab, onDesignSelect }) => {
             </div>
           ))}
         </div>
+      )}
+      
+      {/* Receipt modal */}
+      {showReceipt && selectedDesignForReceipt && (
+        <ReceiptComponent 
+          isVisible={showReceipt}
+          onClose={() => setShowReceipt(false)}
+          design={selectedDesignForReceipt}
+        />
       )}
     </div>
   );

@@ -312,10 +312,10 @@ const API_URL = import.meta.env.VITE_API_URL
     }
   }, []);
 
-const saveCakeDesign = async (name, description = "", isPublic = false) => {
+const saveCakeDesign = async (name, description = "", isPublic = false, previewImage = null) => {
   try {
-
-    console.log("Saving cake design with name:", token);
+    console.log("Saving cake design:", name);
+    
     // Check for authentication
     if (!token) {
       throw new Error("Authentication required. Please log in.");
@@ -323,11 +323,11 @@ const saveCakeDesign = async (name, description = "", isPublic = false) => {
 
     // Extract only the properties the backend expects
     const payload = {
-      userId, 
+      userId, // The userId from context
       name,
       description,
       isPublic,
-      // ADD THIS - explicitly include userId from context
+      previewImage, // Add the preview image parameter
       
       // Cake properties needed by backend
       cakeModel: cakeState.cakeModel,
@@ -340,7 +340,17 @@ const saveCakeDesign = async (name, description = "", isPublic = false) => {
       messageRotation: cakeState.messageRotation || [0, 0, 0]
     };
 
-    console.log("Saving cake design:", name);
+    // Get username from localStorage if possible
+    const userData = JSON.parse(localStorage.getItem('user') || '{}');
+    if (userData.username) {
+      payload.username = userData.username;
+    }
+    
+    console.log("Sending cake design payload:", { 
+      designName: name,
+      hasPreviewImage: !!previewImage,
+      userId 
+    });
     
     const response = await axios.post(
       `${API_URL}/createCake`,
@@ -376,7 +386,7 @@ const getUserCakeDesigns = async () => {
         },
       }
     );
-
+    console.log("User cake designs response:", response.data);
     return response.data;
   } catch (error) {
     console.error("Error fetching user cake designs:", error);

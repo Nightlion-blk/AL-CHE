@@ -105,25 +105,30 @@ const Product = ({ isOpen, onClose, productId }) => {
       }
 
       // Show loading toast
+      toast.info('Adding to cart...', { autoClose: false, toastId: 'adding-to-cart' });
       
       // First add all items to cart and wait for completion
       const addPromises = [];
       for (let i = 0; i < quantity; i++) {
-        addPromises.push(addToCart(productData.id));
+        // Add 'product' as the second parameter - this is the critical fix
+        addPromises.push(addToCart(productData.id, 'product'));
       }
       await Promise.all(addPromises);
       
-      // Then update cart count and get updated cart
+      // Just update the cart count - avoid getUserCart which causes items to disappear
       await getCartCount();
-      await getUserCart(token);
+      // Don't call getUserCart here as it can cause race conditions
+      // await getUserCart(token);
       
       // Update toast to success
-      alert('Product added to cart successfully!');
+      toast.dismiss('adding-to-cart');
+      toast.success('Product added to cart successfully!');
       
       setQuantity(1);
       onClose(); // Close modal after adding to cart
     } catch (error) {
       console.error('Error adding to cart:', error);
+      toast.error('Failed to add product to cart');
     }
   };
   // Get the current main image URL to display
@@ -228,7 +233,6 @@ const Product = ({ isOpen, onClose, productId }) => {
                       if (!token) {
                         toast.error('Please login to add items to cart');
                       } else {
-                        getUserCart(token);
                         handleAddToCart();
                       }
                     }}

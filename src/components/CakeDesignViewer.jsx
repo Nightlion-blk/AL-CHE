@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader';
 
 const CakeDesignViewer = ({ design, height = '400px' }) => {
   const mountRef = useRef(null);
@@ -12,31 +13,79 @@ const CakeDesignViewer = ({ design, height = '400px' }) => {
     // THREE.js setup
     const currentMount = mountRef.current;
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xf5f5f5);
+    
+    // Instead of simple background color, create a sunset environment
+    const createSunsetEnvironment = () => {
+      // Create sunset gradient background
+      const topColor = new THREE.Color(0xff9e63);  // Warm orange
+      const bottomColor = new THREE.Color(0xbc1a6e); // Deep purple-pink
+      
+      const canvas = document.createElement('canvas');
+      canvas.width = 2;
+      canvas.height = 2;
+      
+      const context = canvas.getContext('2d');
+      const gradient = context.createLinearGradient(0, 0, 0, 2);
+      gradient.addColorStop(0, topColor.getStyle());
+      gradient.addColorStop(1, bottomColor.getStyle());
+      
+      context.fillStyle = gradient;
+      context.fillRect(0, 0, 2, 2);
+      
+      const texture = new THREE.CanvasTexture(canvas);
+      scene.background = texture;
+      
+      // Add sunset lighting
+      const sunLight = new THREE.DirectionalLight(0xffe0bd, 1.5);
+      sunLight.position.set(-5, 3, -5);
+      sunLight.castShadow = true;
+      scene.add(sunLight);
+      
+      // Add warm ambient light
+      const ambientLight = new THREE.AmbientLight(0xffccaa, 0.4);
+      scene.add(ambientLight);
+      
+      // Add subtle rim light (blue-ish from opposite side)
+      const rimLight = new THREE.DirectionalLight(0xaaccff, 0.5);
+      rimLight.position.set(5, 2, 5);
+      scene.add(rimLight);
+      
+      // Add ground reflection
+      const groundReflection = new THREE.HemisphereLight(
+        0xffe0bd, // sky color (warm)
+        0xff9e63,  // ground color (orange)
+        0.4
+      );
+      scene.add(groundReflection);
+      
+      // Optional: Add some fog for atmosphere
+      scene.fog = new THREE.FogExp2(0xff9e63, 0.05);
+    };
+    
+    createSunsetEnvironment();
     
     // Camera setup
     const camera = new THREE.PerspectiveCamera(75, currentMount.clientWidth / currentMount.clientHeight, 0.1, 1000);
     camera.position.set(0, 1.5, 2.5);
     
-    // Renderer
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    // Renderer with improved settings for sunset
+    const renderer = new THREE.WebGLRenderer({ 
+      antialias: true,
+      alpha: true 
+    });
     renderer.setSize(currentMount.clientWidth, currentMount.clientHeight);
     renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.physicallyCorrectLights = true;
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.0;
     currentMount.appendChild(renderer.domElement);
     
     // Controls
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.target.set(0, 0.75, 0);
     controls.update();
-    
-    // Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-    scene.add(ambientLight);
-    
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    directionalLight.position.set(5, 5, 5);
-    directionalLight.castShadow = true;
-    scene.add(directionalLight);
     
     // Load cake base model
     const loader = new GLTFLoader();
@@ -52,16 +101,25 @@ const CakeDesignViewer = ({ design, height = '400px' }) => {
     loader.load(cakePath, (gltf) => {
       const cakeModel = gltf.scene;
       
-      // Apply color to cake if specified
-      if (design.cakeModel.color?.primary) {
-        cakeModel.traverse((child) => {
-          if (child.isMesh && design.cakeModel.targetedMeshName?.includes(child.name)) {
+      // Apply material adjustments for sunset environment
+      cakeModel.traverse((child) => {
+        if (child.isMesh) {
+          // If color is specified use it, otherwise enhance existing materials
+          if (design.cakeModel.color?.primary && design.cakeModel.targetedMeshName?.includes(child.name)) {
             child.material = new THREE.MeshStandardMaterial({ 
-              color: new THREE.Color(design.cakeModel.color.primary)
+              color: new THREE.Color(design.cakeModel.color.primary),
+              roughness: 0.7,
+              metalness: 0.1
             });
+          } else if (child.material) {
+            // Enhance existing materials
+            child.material.roughness = 0.7;
+            child.material.metalness = 0.1;
+            child.castShadow = true;
+            child.receiveShadow = true;
           }
-        });
-      }
+        }
+      });
       
       // Set cake position
       if (design.cakeModel.position && design.cakeModel.position.length === 3) {

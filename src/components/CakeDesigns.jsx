@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import CakeDesignViewer from './CakeDesignViewer';
-import { useCakeContext } from '../context/CakeContext'; // Add this import
+import { useCakeContext } from '../context/CakeContext';
 
 const CakeDesigns = () => {
-  const { /* your context values here */ } = useCakeContext(); // Destructure your context values here
+  const { token } = useCakeContext(); // Access token from context if needed for authenticated requests
   
   const [designs, setDesigns] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -31,6 +31,7 @@ const CakeDesigns = () => {
       const response = await axios.get(`http://localhost:8080/api/getall${queryParams}`);
       
       if (response.data.success) {
+        console.log("Designs data:", response.data.data);
         setDesigns(response.data.data); // Use data field from response
         setTotalPages(response.data.pages);
         toast.success('Designs loaded successfully');
@@ -68,9 +69,8 @@ const CakeDesigns = () => {
 
   useEffect(() => {
     fetchDesigns();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-
 
   // Handle page change
   const handlePageChange = (newPage) => {
@@ -162,20 +162,35 @@ const CakeDesigns = () => {
             {designs.map((design) => (
                 <div 
                     key={design._id} 
-                    onClick={() => (
-                        console.log("Design clicked:", design),
-                        fetchDesignByID(design._id))}
+                    onClick={() => {
+                        console.log("Design clicked:", design);
+                        fetchDesignByID(design._id);
+                    }}
                     className="bg-white rounded-lg shadow overflow-hidden transition duration-150 ease-in-out transform hover:-translate-y-1 hover:shadow-lg cursor-pointer"
                 >
+                {/* Display the preview image if available */}
                 <div className="h-48 bg-gray-200 flex items-center justify-center overflow-hidden">
-                  {/* Generate a simple preview if no image exists */}
-                  <div className="text-center p-4 w-full h-full flex items-center justify-center bg-gray-100">
-                    <div className="rounded-lg p-4 w-24 h-24 bg-pink-100 flex items-center justify-center">
-                      <svg className="h-12 w-12 text-pink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M21 15.546c-.523 0-1.046.151-1.5.454a2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.701 2.701 0 00-1.5-.454M9 6v2m3-2v2m3-2v2M9 3h.01M12 3h.01M15 3h.01M21 21v-7a2 2 0 00-2-2H5a2 2 0 00-2 2v7h18zm-3-9v-2a2 2 0 00-2-2H8a2 2 0 00-2 2v2h12z" />
-                      </svg>
+                  {design.previewImage ? (
+                    <img 
+                      src={design.previewImage} 
+                      alt={`${design.name} preview`}
+                      className="h-full w-full object-cover"
+                      onError={(e) => {
+                        console.error("Image failed to load:", design.previewImage);
+                        e.target.onerror = null;
+                        e.target.style.display = 'none';
+                        e.target.parentNode.classList.add('fallback-active');
+                      }}
+                    />
+                  ) : (
+                    <div className="text-center p-4 w-full h-full flex items-center justify-center bg-gray-100 fallback-container">
+                      <div className="rounded-lg p-4 w-24 h-24 bg-pink-100 flex items-center justify-center">
+                        <svg className="h-12 w-12 text-pink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M21 15.546c-.523 0-1.046.151-1.5.454a2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.701 2.701 0 00-1.5-.454M9 6v2m3-2v2m3-2v2M9 3h.01M12 3h.01M15 3h.01M21 21v-7a2 2 0 00-2-2H5a2 2 0 00-2 2v7h18zm-3-9v-2a2 2 0 00-2-2H8a2 2 0 00-2 2v2h12z" />
+                        </svg>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
                 
                 <div className="p-4">
@@ -298,22 +313,43 @@ const CakeDesigns = () => {
                       </div>
                       
                       <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Left column - Cake visualization */}
+                        {/* Left column - Cake visualization or preview image */}
                         <div className="bg-gray-100 rounded-lg h-64 md:h-96 flex items-center justify-center overflow-hidden">
-                          {selectedDesign.cakeModel?.path ? (
+                          {selectedDesign.previewImage ? (
+                            <img 
+                              src={selectedDesign.previewImage} 
+                              alt={`${selectedDesign.name} preview`}
+                              className="h-full w-full object-contain"
+                              onError={(e) => {
+                                console.error("Preview image failed to load");
+                                e.target.style.display = 'none';
+                                // Fall back to 3D viewer if available
+                                if (selectedDesign.cakeModel?.path) {
+                                  e.target.parentNode.classList.add('use-3d-viewer');
+                                }
+                              }}
+                            />
+                          ) : selectedDesign.cakeModel?.path ? (
                             <CakeDesignViewer design={selectedDesign} height="100%" />
                           ) : (
                             <div className="rounded-lg p-6 bg-pink-100 text-pink-600 flex flex-col items-center justify-center">
                               <svg className="h-16 w-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M21 15.546c-.523 0-1.046.151-1.5.454a2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.701 2.701 0 00-1.5-.454M9 6v2m3-2v2m3-2v2M9 3h.01M12 3h.01M15 3h.01M21 21v-7a2 2 0 00-2-2H5a2 2 0 00-2 2v7h18zm-3-9v-2a2 2 0 00-2-2H8a2 2 0 00-2 2v2h12z" />
                               </svg>
-                              <p className="mt-4 text-sm">3D model unavailable</p>
-                              <p className="mt-2 text-xs">No cake model specified</p>
+                              <p className="mt-4 text-sm">No preview available</p>
+                              <p className="mt-2 text-xs">No preview image or 3D model</p>
                             </div>
                           )}
+                          
+                          {/* Show the 3D viewer as a fallback when preview image fails */}
+                          <div className="use-3d-viewer hidden">
+                            {selectedDesign.cakeModel?.path && (
+                              <CakeDesignViewer design={selectedDesign} height="100%" />
+                            )}
+                          </div>
                         </div>
                         
-                        {/* Right column - Details */}
+                        {/* Right column - Details (unchanged) */}
                         <div className="space-y-6">
                           {/* Customer Information */}
                           <div className="bg-gray-50 rounded-lg p-4">

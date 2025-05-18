@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { Undo2, Redo2, RotateCcw, Radius, Copy, ClipboardPaste } from "lucide-react";
 import TextElement from './TextElement';
 import SaveButton from './SaveButton';
+import CanvasScreenshot from './CanvasScreenshot';
 
 // Create ElementRenderer with forwardRef to properly handle refs
 const ElementRenderer = React.forwardRef(({ element, index, selected, onSelect }, ref) => {
@@ -390,6 +391,7 @@ const DecorationCanvas = React.forwardRef((props, ref) => {
   const [processingClick, setProcessingClick] = useState(false);
   const [copiedElement, setCopiedElement] = useState(null);
   const [pasteOffset, setPasteOffset] = useState(0); // To offset pasted elements
+  const [canvasImageUrl, setCanvasImageUrl] = useState(null);
   
   const canUndo = cakeState.currentIndex > 0;
   const canRedo = cakeState.currentIndex < cakeState.history.length - 1;
@@ -605,6 +607,49 @@ const DecorationCanvas = React.forwardRef((props, ref) => {
   }
 };
   
+  // Add this near the top of your component, with your other refs
+const rendererRef = useRef(null);
+
+// Improved CanvasScreenshot component
+const CanvasScreenshot = ({ onScreenshot }) => {
+  const { gl, scene, camera } = useThree();
+  
+  useEffect(() => {
+    // Function to take a screenshot with debug logging
+    const takeScreenshot = () => {
+      console.log("Taking screenshot with:", {
+        hasGL: !!gl,
+        hasScene: !!scene,
+        hasCamera: !!camera
+      });
+      
+      // Ensure we render the current scene state
+      gl.render(scene, camera);
+      
+      // Get the screenshot as data URL
+      const dataURL = gl.domElement.toDataURL('image/png');
+      console.log("Screenshot captured, data size:", dataURL.length);
+      
+      // Pass to parent via callback
+      onScreenshot(dataURL);
+      
+      return dataURL;
+    };
+    
+    // Take an initial screenshot when component mounts
+    setTimeout(takeScreenshot, 500);
+    
+    // Add the function to window object for external access
+    window.takeCanvasScreenshot = takeScreenshot;
+    
+    return () => {
+      delete window.takeCanvasScreenshot;
+    };
+  }, [gl, scene, camera, onScreenshot]);
+  
+  return null;
+};
+
   return (
     <div className="relative">
       <div className="absolute top-2 left-2 z-10 flex gap-2">
@@ -761,7 +806,8 @@ const DecorationCanvas = React.forwardRef((props, ref) => {
           camera={{ position: [0, 2, 5], fov: 50 }} 
           onClick={handleCanvasClick}
           onCreated={({ gl, camera, scene }) => {
-            // Store the scene for later use
+            // Store references for later use
+            rendererRef.current = gl;
             scene.userData.orbitControls = orbitControlsRef.current;
           }}
           raycaster={{ 
@@ -837,12 +883,19 @@ const DecorationCanvas = React.forwardRef((props, ref) => {
               />
             </>
           )}
+          <CanvasScreenshot onScreenshot={(dataURL) => {
+    console.log("Screenshot taken, length:", dataURL.length);
+    setCanvasImageUrl(dataURL);
+  }} />
         </Canvas>
       </div>
       
       {/* Add the save button below the canvas */}
       <div className="mt-4 flex justify-end">
-        <SaveButton onSaveComplete={handleSaveComplete} />
+        <SaveButton 
+          onSaveComplete={handleSaveComplete}
+          canvasImageUrl={canvasImageUrl}
+        />
       </div>
     </div>
   );

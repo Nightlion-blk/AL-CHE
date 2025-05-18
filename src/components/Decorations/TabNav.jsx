@@ -6,14 +6,14 @@ const TabNav = ({ activeTab, setActiveTab }) => {
   const { cakeState, token } = useCakeContext();
   
   const tabs = [
+    "MY-DESIGNS",
     "BASE-STYLE",
     "BASE",
     "FLAVOURS",
     "COLOR",
     "ELEMENTS",
     "TOPPER",
-    "MESSAGE",
-    "MY-DESIGNS",
+    "MESSAGE"
   ];
 
   const handleTabClick = (tab) => {

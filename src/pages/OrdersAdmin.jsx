@@ -22,6 +22,10 @@ const OrdersAdmin = () => {
   const [orderFilter, setOrderFilter] = useState('all');
   const [viewedOrder, setViewedOrder] = useState(null);
   const [dateRange, setDateRange] = useState({ start: null, end: null });
+  const [hasCustomCakes, setHasCustomCakes] = useState(false);
+  const [minAmount, setMinAmount] = useState('');
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState('');
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState('');
 
   // Status options with color coding
   const statusOptions = [
@@ -30,6 +34,23 @@ const OrdersAdmin = () => {
     { value: 'shipped', label: 'Shipped', color: '#3b82f6' },
     { value: 'canceled', label: 'Canceled', color: '#ef4444' },
     { value: 'Completed', label: 'Completed', color: '#10b981' },
+  ];
+
+  // Payment method options
+  const paymentMethodOptions = [
+    { value: '', label: 'All Payment Methods', color: '#6b7280' },
+    { value: 'credit_card', label: 'Credit Card', color: '#3b82f6' },
+    { value: 'paypal', label: 'PayPal', color: '#4f46e5' },
+    { value: 'bank_transfer', label: 'Bank Transfer', color: '#10b981' },
+  ];
+
+  // Payment status options
+  const paymentStatusOptions = [
+    { value: '', label: 'All Payment Statuses', color: '#6b7280' },
+    { value: 'paid', label: 'Paid', color: '#10b981' },
+    { value: 'pending', label: 'Pending', color: '#ec4899' },
+    { value: 'failed', label: 'Failed', color: '#ef4444' },
+    { value: 'refunded', label: 'Refunded', color: '#f59e0b' },
   ];
 
   // Custom styles for the dropdown
@@ -73,12 +94,17 @@ const OrdersAdmin = () => {
           'shipped': 'Shipped',
           'completed': 'Completed',
           'canceled': 'Canceled',
-        };s
+        };
         params.append('status', statusMap[orderFilter] || orderFilter);
       }
       
+      // Add the new filter parameters
       if (dateRange.start) params.append('startDate', dateRange.start);
       if (dateRange.end) params.append('endDate', dateRange.end);
+      if (hasCustomCakes) params.append('hasCustomCakes', 'true');
+      if (minAmount) params.append('minAmount', minAmount);
+      if (paymentMethodFilter) params.append('paymentMethod', paymentMethodFilter);
+      if (paymentStatusFilter) params.append('paymentStatus', paymentStatusFilter);
       
       const response = await axios.get(`http://localhost:8080/api/orders/all?${params.toString()}`, {
         headers: {
@@ -87,13 +113,13 @@ const OrdersAdmin = () => {
         }
       });
       
-      if (response.data) {
+      if (response.data && response.data.success) {
         console.log('Orders response:', response.data);
-        setOrders(response.data.orders);
-        setTotalPages(response.data.pagination.totalPages);
-        setTotalOrders(response.data.pagination.totalOrders);
+        setOrders(response.data.orders || []);
+        setTotalPages(response.data.pagination.totalPages || 1);
+        setTotalOrders(response.data.pagination.totalOrders || 0);
         
-        console.log('Orders fetched successfully:', totalOrders);
+        console.log('Orders fetched successfully:', response.data.pagination.totalOrders);
       } else {
         setOrders([]);
         setTotalPages(1);
@@ -142,7 +168,17 @@ const OrdersAdmin = () => {
     if (token) {
       fetchOrders();
     }
-  }, [token, currentPage, orderFilter]);
+  }, [
+    token, 
+    currentPage, 
+    orderFilter, 
+    hasCustomCakes,
+    minAmount,
+    paymentMethodFilter,
+    paymentStatusFilter,
+    dateRange.start,
+    dateRange.end
+  ]);
 
   // Handle search - client-side filtering
   const filteredOrders = searchInput 
@@ -228,7 +264,14 @@ const OrdersAdmin = () => {
               <tbody>
                 {filteredOrders.map((order) => (
                   <tr key={order._id} className="border-b hover:bg-gray-50">
-                    <td className="py-3 px-4">#{order.orderNumber}</td>
+                    <td className="py-3 px-4">
+                      #{order.orderNumber}
+                      {order.hasCustomCakes && (
+                        <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-pink-100 text-pink-800">
+                          Custom
+                        </span>
+                      )}
+                    </td>
                     <td className="py-3 px-4">
                       <button
                         onClick={() => setViewedOrder(order)}
@@ -358,7 +401,18 @@ const OrdersAdmin = () => {
                               )}
                               <div>
                                 <strong className="block">{item.name}</strong>
-                                <span className="text-sm text-gray-500">{item.productId}</span>
+                                <span className="text-sm text-gray-500">
+                                  {item.itemType === 'cake_design' ? (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-pink-100 text-pink-800">
+                                      Custom Cake
+                                    </span>
+                                  ) : (
+                                    item.productId
+                                  )}
+                                </span>
+                                {item.description && (
+                                  <p className="text-xs text-gray-500 mt-1">{item.description}</p>
+                                )}
                               </div>
                             </div>
                           </td>
