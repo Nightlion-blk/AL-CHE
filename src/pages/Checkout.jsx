@@ -6,6 +6,7 @@ import { toast } from 'react-toastify';
 
 const Checkout = () => {
   const { token, currency, userName, detailedCartItems, cartHeader } = useContext(ShopContext);
+  
   const navigate = useNavigate();
   
   const [loading, setLoading] = useState(true);
@@ -14,7 +15,7 @@ const Checkout = () => {
   const { cartId } = useParams();
   const [checkoutId, setCheckoutId] = useState(''); // Add this state for tracking
   
-  // Add checkout abandonment tracking
+  // Add checkout abandonment tracki  ng
   useEffect(() => {
     // Only run if we have a cartId and are in checkout process
     if (!cartHeader?.cartId || !processingCheckout) return;
@@ -216,9 +217,18 @@ const Checkout = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    console.log("Submitting checkout with cart ID:", cartHeader);
+
     if (!token) {
       toast.error("Please login to proceed");
       navigate('/login?redirect=/checkout');
+      return;
+    }
+    
+    // Check if cart header exists
+    if (!cartHeader || !cartHeader.cartId ) {
+      toast.error("No active cart found. Please try again or add items to your cart.");
+      navigate('/cart');
       return;
     }
     
@@ -239,7 +249,7 @@ const Checkout = () => {
       const paymentMethod = selectedPaymentMethod;
       
       if (paymentMethod === 'cod') {
-        // COD flow remains unchanged
+        // COD flow
         const orderResponse = await axios.post(
           `${API_URL}/api/orders/createOrder`,
           {

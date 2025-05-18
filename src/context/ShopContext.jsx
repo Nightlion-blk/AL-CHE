@@ -151,81 +151,85 @@ export const ShopContextProvider = ({ children }) => {
             try {
                 const response = await axios.get(
                     `http://localhost:8080/api/getCart/${userName.id}`,
-                    {
-                        headers: { 
-                            'Authorization': `Bearer ${userToken}`,
-                            'Content-Type': 'application/json'
-                        }
-                    }
+                    { headers: { 'Authorization': `Bearer ${userToken}` } }
                 );
                 
-                // Process response directly instead of calling processCartResponse
                 if (response.data.success) {
-                    console.log("Cart data from server:", response.data);
-                    
-                    // Set the cart header
-                    if (response.data.cartHeader) {
-                        setCartHeader(response.data.cartHeader);
-                    }
-                    
-                    // Process cart items
-                    const items = response.data.cartItems || [];
-                    
-                    // Prepare local cart state
-                    const cartObject = {};
-                    const detailedItems = [];
-                    
-                    // Process each cart item
-                    items.forEach(item => {
-                        // Process both regular products and custom cakes
-                        if (item.itemType === 'product' && item.productId) {
-                            // Regular product processing (unchanged)
-                            cartObject[item.productId] = item.quantity;
-                            
-                            detailedItems.push({
-                                cartItemId: item._id,
-                                productId: item.productId,
-                                name: item.name || 'Product',
-                                price: item.price,
-                                quantity: item.quantity,
-                                image: item.image || 'default-product.jpg',
-                                ProductImage: item.ProductImage,
-                                description: item.description || '',
-                                itemType: 'product',
-                                isUnavailable: item.isUnavailable
-                            });
-                        } 
-                        // Custom cake handling
-                        else if (item.itemType === 'cake_design') {
-                            // Fix: assign cartItemId as cakeDesignId if not provided
-                            const designId = item.cakeDesignId || item._id;
-                            
-                            // Use cake_ prefix for the key
-                            cartObject[`cake_${designId}`] = item.quantity;
-                            
-                            // Create detailed item with fixed fields
-                            detailedItems.push({
-                                cartItemId: item._id,
-                                // Fix: Ensure cakeDesignId is set properly
-                                cakeDesignId: designId,
-                                name: item.name || 'Custom Cake Design',
-                                price: item.price || 25, // Ensure there's always a price
-                                quantity: item.quantity,
-                                // Fix: Use any available image source
-                                previewImage: item.previewImage || item.designSnapshot?.previewImage,
-                                image: item.image || item.previewImage || item.designSnapshot?.previewImage || 'default-cake-image.jpg',
-                                description: item.description || 'Custom cake design',
-                                cakeOptions: item.cakeOptions || { size: 'medium', flavor: 'vanilla' },
-                                itemType: 'cake_design',
-                                isUnavailable: item.isUnavailable
-                            });
-                        }
+                  // Make sure cartHeader is properly set even if it's not in the response
+                  if (response.data.cartHeader) {
+                    setCartHeader(response.data.cartHeader);
+                  } else {
+                    // Create a fallback cartHeader if missing from response
+                    setCartHeader({
+                      cartId: response.data.cartId || `cart_${userName.id}`,
+                      userId: userName.id,
+                      createdAt: new Date().toISOString()
                     });
                     
-                    // Update state
-                    setCartItems(cartObject);
-                    setDetailedCartItems(detailedItems);
-                    
+                    console.log("Created fallback cartHeader:", {
+                      cartId: response.data.cartId || `cart_${userName.id}`,
+                      userId: userName.id
+                    });
+                  }
+                  
+                  // Process cart items as before
+                  const items = response.data.cartItems || [];
+                  
+                  // Prepare local cart state
+                  const cartObject = {};
+                  const detailedItems = [];
+                  
+                  // Process each cart item
+                  items.forEach(item => {
+                      // Process both regular products and custom cakes
+                      if (item.itemType === 'product' && item.productId) {
+                          // Regular product processing (unchanged)
+                          cartObject[item.productId] = item.quantity;
+                          
+                          detailedItems.push({
+                              cartItemId: item._id,
+                              productId: item.productId,
+                              name: item.name || 'Product',
+                              price: item.price,
+                              quantity: item.quantity,
+                              image: item.image || 'default-product.jpg',
+                              ProductImage: item.ProductImage,
+                              description: item.description || '',
+                              itemType: 'product',
+                              isUnavailable: item.isUnavailable
+                          });
+                      } 
+                      // Custom cake handling
+                      else if (item.itemType === 'cake_design') {
+                          // Fix: assign cartItemId as cakeDesignId if not provided
+                          const designId = item.cakeDesignId || item._id;
+                          
+                          // Use cake_ prefix for the key
+                          cartObject[`cake_${designId}`] = item.quantity;
+                          
+                          // Create detailed item with fixed fields
+                          detailedItems.push({
+                              cartItemId: item._id,
+                              // Fix: Ensure cakeDesignId is set properly
+                              cakeDesignId: designId,
+                              name: item.name || 'Custom Cake Design',
+                              price: item.price || 25, // Ensure there's always a price
+                              quantity: item.quantity,
+                              // Fix: Use any available image source
+                              previewImage: item.previewImage || item.designSnapshot?.previewImage,
+                              image: item.image || item.previewImage || item.designSnapshot?.previewImage || 'default-cake-image.jpg',
+                              description: item.description || 'Custom cake design',
+                              cakeOptions: item.cakeOptions || { size: 'medium', flavor: 'vanilla' },
+                              itemType: 'cake_design',
+                              isUnavailable: item.isUnavailable
+                          });
+                      }
+                  });
+                  
+                  // Update state
+                  setCartItems(cartObject);
+                  setDetailedCartItems(detailedItems);
+                  
                 } else {
                     console.error("Error in cart response:", response.data.message);
                     toast.error("Could not load your cart");

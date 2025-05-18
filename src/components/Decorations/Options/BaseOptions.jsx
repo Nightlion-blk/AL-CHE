@@ -11,7 +11,6 @@ const BaseOptions = () => {
       price: 60.0,
       image: "/images/three-tier-cake.png",
     },
-
     
     {
       id: "TWO_TIER",
@@ -23,7 +22,7 @@ const BaseOptions = () => {
   {
     id: "ROUND",
     name: "ROUND CAKE LAYER-1",
-    path: "/tresD-SE/CAKE-B-3layer/CakeA_smooth.glb", // <-- correct path
+    path: "/tresD-SE/CAKE B/CAKE_B_1L_RENAME.glb", // <-- correct path
     position: [0, 0, 0],
     color: { primary: "#fff0f5" },
     targetedMeshName: ["RoundedBase"],
@@ -35,7 +34,7 @@ const BaseOptions = () => {
   {
       id: "ROUND2",
     name: "ROUND CAKE LAYER-2",
-    path: "/tresD-SE/CAKE-B-3layer/CakeBlayer2_smooth.glb", // <-- correct path
+    path: "/tresD-SE/CAKE B/CAKE_B_2L_RENAME.glb", // <-- correct path
     position: [0, 0, 0],
     color: { primary: "#fff0f5" },
     targetedMeshName: ["RoundedBase"],
@@ -47,7 +46,7 @@ const BaseOptions = () => {
   {
       id: "ROUND3",
     name: "ROUND CAKE LAYER-3",
-    path: "/tresD-SE/CAKE-B-3layer/CakeBlayer3_smooth.glb", // <-- correct path
+    path: "/tresD-SE/CAKE B/CAKE_B_3L_RENAME.glb", // <-- correct path
     position: [0, 0, 0],
     color: { primary: "#fff0f5" },
     targetedMeshName: ["RoundedBase"],
@@ -55,6 +54,8 @@ const BaseOptions = () => {
     price: 30.0,
     description: "Classic rounded edges for a soft, elegant look",
   },
+
+
   ]
   const handleSelectCake = (cakeId) => {
     const cake = cakeOptions.find((c) => c.id === cakeId);

@@ -1,11 +1,24 @@
-import React, {useEffect, useState, useRef} from "react";
-import {useCakeContext} from "../../context/CakeContext";
+import React, { useState, useEffect, useRef } from "react";
+import { ShoppingCart } from "lucide-react";
+import { toast } from "react-toastify";
+import { useCakeContext } from "../../context/CakeContext";
 
-const Receipt = ({ isVisible, onClose, design}) => {
+const Receipt = ({ 
+  isVisible, 
+  onClose, 
+  design,
+  designName, 
+  captureThreeCanvas, 
+  token, 
+  addCustomCakeToCart,
+  saveCakeDesign,
+  onAddToCartSuccess
+}) => {
     const {cakeState} = useCakeContext();
     const designData = design || cakeState;
     const printRef = useRef();
     const [orderConfirmed, setOrderConfirmed] = useState(false);
+    const [isAddingToCart, setIsAddingToCart] = useState(false);
     
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('en-US', {
@@ -66,6 +79,100 @@ const Receipt = ({ isVisible, onClose, design}) => {
         return subtotal;
     };
     
+    // Calculate cake price based on design complexity
+    const calculateCakePrice = () => {
+        let price = 25.00; // Base price
+        
+        // Add price for decorations
+        if (cakeState?.elements && cakeState.elements.length) {
+            price += cakeState.elements.length * 3.50;
+        }
+        
+        // Add price for message
+        if (cakeState?.message) {
+            price += 5.00;
+        }
+        
+        return price;
+    };
+    
+    // Handle adding to cart
+    const handleAddToCart = async () => {
+        if (!token) {
+            toast.error("Please log in to add items to cart");
+            return;
+        }
+        
+        try {
+            setIsAddingToCart(true);
+            
+            // Get the image
+            const snapshotImage = captureThreeCanvas();
+            
+            // Create temporary design object
+            const designToSave = {
+                ...cakeState,
+                name: designName,
+                description: `Cake design created on ${new Date().toLocaleDateString()}`,
+                previewImage: snapshotImage,
+                savedAt: new Date().toISOString()
+            };
+            
+            // Save design to database
+            console.log("Saving design to database...");
+            const savedDesign = await saveCakeDesign(
+                designName, 
+                `Cake design created on ${new Date().toLocaleDateString()}`,
+                true, 
+                snapshotImage
+            );
+            
+            console.log("Design saved response:", savedDesign);
+            
+            // Create a proper design object with _id property
+            if (savedDesign && savedDesign.data && savedDesign.data._id) {
+                // Create a proper object with _id property
+                const designObject = { 
+                    _id: savedDesign.data._id,
+                    name: designName,
+                    previewImage: snapshotImage
+                };
+                
+                // Options for the cake
+                const cakeOptions = {
+                    flavor: 'vanilla',
+                    size: 'medium',
+                    tier: 'single',
+                    message: cakeState.message || ''
+                };
+                
+                // Calculate price
+                const price = calculateCakePrice();
+                
+                // Add to cart
+                await addCustomCakeToCart(designObject, cakeOptions, price);
+                
+                // Show success message
+                toast.success("Custom cake added to cart!");
+                
+                // Call success callback
+                if (onAddToCartSuccess) {
+                  onAddToCartSuccess();
+                }
+                
+                // Close receipt modal
+                onClose();
+            } else {
+                throw new Error("Failed to save design - invalid response format");
+            }
+        } catch (error) {
+            console.error("Error adding cake to cart:", error);
+            toast.error("Failed to add cake to cart");
+        } finally {
+            setIsAddingToCart(false);
+        }
+    };
+
     const subtotal = calculateSubtotal();
     const taxRate = 0.08; // 8% tax
     const tax = subtotal * taxRate;
@@ -91,12 +198,40 @@ const Receipt = ({ isVisible, onClose, design}) => {
                                     Order Confirmed!
                                 </div>
                             ) : (
-                                <button 
-                                    onClick={handleConfirmOrder}
-                                    className="px-4 py-2 bg-pink-500 text-white rounded hover:bg-pink-600 transition"
-                                >
-                                    Confirm Order
-                                </button>
+                                <>
+                                    {/* Add to Cart Button */}
+                                    <button 
+                                        onClick={handleAddToCart}
+                                        disabled={isAddingToCart}
+                                        className={`px-4 py-2 rounded transition flex items-center ${
+                                            isAddingToCart 
+                                            ? 'bg-gray-300 text-gray-600 cursor-not-allowed' 
+                                            : 'bg-pink-500 text-white hover:bg-pink-600'
+                                        }`}
+                                    >
+                                        {isAddingToCart ? (
+                                            <>
+                                                <svg className="animate-spin h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                                Adding...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <ShoppingCart className="w-4 h-4 mr-1" />
+                                                Add to Cart
+                                            </>
+                                        )}
+                                    </button>
+                                    
+                                    <button 
+                                        onClick={handleConfirmOrder}
+                                        className="px-4 py-2 bg-pink-500 text-white rounded hover:bg-pink-600 transition"
+                                    >
+                                        Confirm Order
+                                    </button>
+                                </>
                             )}
                             <button 
                                 onClick={handlePrint}

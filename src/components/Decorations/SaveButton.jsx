@@ -136,20 +136,7 @@ const SaveButton = ({ onSaveComplete, canvasImageUrl }) => {
     setShowNameInput(true);
   };
 
-  const handlePrepareAddToCart = () => {
-    if (!token) {
-      setSaveStatus('error');
-      setSaveType('auth');
-      setTimeout(() => {
-        setSaveStatus(null);
-        setSaveType(null);
-      }, 3000);
-      return;
-    }
-    
-    setNameInputAction('cart');
-    setShowNameInput(true);
-  };
+
 
   const confirmDatabaseSave = () => {
     setShowNameInput(false);
@@ -320,14 +307,6 @@ const SaveButton = ({ onSaveComplete, canvasImageUrl }) => {
               Save to Database
             </button>
             
-            <button
-              onClick={handlePrepareAddToCart}
-              className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-pink-50"
-              role="menuitem"
-            >
-              <ShoppingCart className="mr-2 h-4 w-4" />
-              Add to Cart
-            </button>
             
             <button
               onClick={() => setShowReceipt(true)}
@@ -394,6 +373,20 @@ const SaveButton = ({ onSaveComplete, canvasImageUrl }) => {
         <Receipt
           isVisible={showReceipt}
           onClose={() => setShowReceipt(false)}
+          cakeState={cakeState}
+          designName={designName}
+          captureThreeCanvas={captureThreeCanvas}
+          token={token}
+          addCustomCakeToCart={addCustomCakeToCart}
+          saveCakeDesign={saveCakeDesign}
+          onAddToCartSuccess={() => {
+            setSaveStatus('success');
+            setSaveType('cart');
+            setTimeout(() => {
+              setSaveStatus(null);
+              setSaveType(null);
+            }, 3000);
+          }}
         />
       )}
 

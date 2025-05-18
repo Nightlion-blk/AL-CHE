@@ -271,7 +271,10 @@ const ElementControls = ({ selectedElement, transformMode, onPositionChange }) =
 // Cake model renderer component
 const CakeRenderer = ({ cakeModel }) => {
   if (!cakeModel || !cakeModel.path) return null;
-  const { dispatch } = useCakeContext();
+  
+  // 👇 FIX: Add cakeState to the destructured values from context
+  const { dispatch, cakeState } = useCakeContext();
+  
   const { scene } = useGLTF(cakeModel.path);
   const position = cakeModel.position || [0, 0, 0];
   
@@ -305,15 +308,28 @@ const CakeRenderer = ({ cakeModel }) => {
   if (scene) {
     scene.traverse((child) => {
       if (child.isMesh) {
-        // Handle cream layer
-        if (child.name.includes("cream") || (cakeModel.creamMeshes && cakeModel.creamMeshes.includes(child.name))) {
-          if (cakeModel.color && cakeModel.color.cream) {
-            child.material.color.set(cakeModel.color.cream);
+        // Check for BATTER mesh - apply primary flavor color
+        if (child.name.toUpperCase() === 'BATTER' || 
+            child.name.toLowerCase().includes('batter') || 
+            (cakeModel.batterMeshes && cakeModel.batterMeshes.includes(child.name))) {
+          
+          // If we have a flavor with primary color, use it
+          if (cakeState.flavour && cakeState.flavour.primary) {
+            console.log(`Applying flavor primary color ${cakeState.flavour.primary} to ${child.name}`);
+            child.material.color.set(cakeState.flavour.primary);
+          } 
+          // Fall back to cakeModel color if available
+          else if (cakeModel.color && cakeModel.color.batter) {
+            child.material.color.set(cakeModel.color.batter);
+          }
+          // Default fallback color
+          else {
+            child.material.color.set("#F9F5E7"); // Default vanilla color
           }
           
-          // Apply cream textures
-          if (cakeModel.textureMap && cakeModel.textureMap.has("cream")) {
-            const texture = cakeModel.textureMap.get("cream");
+          // Apply batter textures if available
+          if (cakeModel.textureMap && cakeModel.textureMap.has("batter")) {
+            const texture = cakeModel.textureMap.get("batter");
             if (texture) {
               const textureLoader = new THREE.TextureLoader();
               const loadedTexture = textureLoader.load(texture);
@@ -324,15 +340,28 @@ const CakeRenderer = ({ cakeModel }) => {
             }
           }
         }
-        // Handle batter
-        else if (child.name.includes("batter") || (cakeModel.batterMeshes && cakeModel.batterMeshes.includes(child.name))) {
-          if (cakeModel.color && cakeModel.color.batter) {
-            child.material.color.set(cakeModel.color.batter);
+        // Check for CREAM mesh - apply secondary flavor color
+        else if (child.name.toUpperCase() === 'CREAM' || 
+                child.name.toLowerCase().includes('cream') || 
+                (cakeModel.creamMeshes && cakeModel.creamMeshes.includes(child.name))) {
+          
+          // If we have a flavor with secondary color, use it
+          if (cakeState.flavour && cakeState.flavour.secondary) {
+            console.log(`Applying flavor secondary color ${cakeState.flavour.secondary} to ${child.name}`);
+            child.material.color.set(cakeState.flavour.secondary);
+          } 
+          // Fall back to cakeModel color if available
+          else if (cakeModel.color && cakeModel.color.cream) {
+            child.material.color.set(cakeModel.color.cream);
+          }
+          // Default fallback color
+          else {
+            child.material.color.set("#E8D7B4"); // Default vanilla cream color
           }
           
-          // Apply batter textures
-          if (cakeModel.textureMap && cakeModel.textureMap.has("batter")) {
-            const texture = cakeModel.textureMap.get("batter");
+          // Apply cream textures if available
+          if (cakeModel.textureMap && cakeModel.textureMap.has("cream")) {
+            const texture = cakeModel.textureMap.get("cream");
             if (texture) {
               const textureLoader = new THREE.TextureLoader();
               const loadedTexture = textureLoader.load(texture);
@@ -371,7 +400,7 @@ const CakeRenderer = ({ cakeModel }) => {
       }
     });
   }
-}, [scene, cakeModel]);
+}, [scene, cakeModel, cakeState.flavour]); // Added cakeState.flavour as a dependency
   
   return <primitive object={scene} position={position} />;
 };
