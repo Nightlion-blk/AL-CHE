@@ -5,20 +5,6 @@ const BaseOptions = () => {
   const { cakeState, dispatch } = useCakeContext();
 
   const cakeOptions = [
-    {
-      id: "THREE_TIER",
-      name: "THREE TIER CAKE",
-      price: 60.0,
-      image: "/images/three-tier-cake.png",
-    },
-    
-    {
-      id: "TWO_TIER",
-      name: "TWO TIER CAKE",
-      price: 40.0,
-      image: "/images/two-tier-cake.png",
-    },
-
   {
     id: "ROUND",
     name: "ROUND CAKE LAYER-1",

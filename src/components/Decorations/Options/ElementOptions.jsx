@@ -16,17 +16,62 @@ const ElementOptions = () => {
 
   const elements = {
     sprinkles: [
-      { id: "rainbow-sprinkles", name: "Rainbow Sprinkles", price: 2.0 },
-      { id: "chocolate-sprinkles", name: "Chocolate Sprinkles", price: 2.0 },
-      { id: "sugar-pearls", name: "Sugar Pearls", price: 3.0 },
-      { id: "confetti", name: "Confetti", price: 2.5 },
+      { 
+        id: "rainbow-sprinkles", 
+        name: "Rainbow Sprinkles", 
+        price: 2.0,
+        rotation: [0, 0, 0]  // Default flat rotation
+      },
+      { 
+        id: "chocolate-sprinkles", 
+        name: "Chocolate Sprinkles", 
+        price: 2.0,
+        rotation: [0, 0, 0]
+      },
+      { 
+        id: "sugar-pearls", 
+        name: "Sugar Pearls", 
+        price: 3.0,
+        rotation: [0, 0, 0]
+      },
+      { 
+        id: "confetti", 
+        name: "Confetti", 
+        price: 2.5,
+        rotation: [0, 0, 0]
+      },
     ],
+    
     flowers: [
-      { id: "rose-buds", name: "Rose Buds", price: 4.0 },
-      { id: "lavender", name: "Lavender", price: 3.5 },
-      { id: "sunflower", name: "Sunflower", price: 4.0 },
-      { id: "orchid", name: "Orchid", price: 5.0 },
+      { 
+        id: "rose", 
+        name: "Rose", 
+        path: "tresD-SE/CAKE-B-3layer/PuttingObjects/Flowers/Rose.glb", 
+        position: [0, 1, 0],
+        scale: [0.5, 0.5, 0.5],
+        rotation: [0, 0, 0],  // Default upright position
+        price: 20.0 
+      },
+      { 
+        id: "sunflower", 
+        name: "SunFlower", 
+        path: "tresD-SE/CAKE-B-3layer/PuttingObjects/Flowers/Sunflower.glb", 
+        position: [0, 1, 0],
+        scale: [0.5, 0.5, 0.5],
+        rotation: [0, 0, 0],  // Default upright position
+        price: 20.0 
+      },
+      { 
+        id: "orchid", 
+        name: "Orchid", 
+        path: "tresD-SE/CAKE-B-3layer/PuttingObjects/Flowers/Orchid.glb", 
+        position: [0, 1, 0],
+        scale: [0.5, 0.5, 0.5],
+        rotation: [0, 0, 0],  // Default upright position
+        price: 5.0 
+      },
     ],
+
     fruits: [
       { 
         id: "strawberry-slices", 
@@ -34,79 +79,149 @@ const ElementOptions = () => {
         path: "tresD-SE/CAKE-B-3layer/PuttingObjects/HalfStrawberry.glb", 
         position: [0, 1, 0],
         scale: [0.5, 0.5, 0.5],
+        rotation: [-Math.PI/2, 0, 0],  // Flat on the cake
         price: 3.0 
       },
-      { id: "blueberries", name: "Blueberries", price: 3.5 },
-      { id: "kiwi-slices", name: "Kiwi Slices", price: 3.5 },
-      { id: "raspberry", name: "Raspberry", price: 4.0 },
+      { 
+        id: "blueberry", 
+        name: "Blueberry", 
+        path: "tresD-SE/CAKE-B-3layer/PuttingObjects/BlueBerry.glb", 
+        position: [0, 1, 0],
+        scale: [1, 1, 1], // Changed from 0.5 to 0.1 to match Blender scale
+        rotation: [0, 0, 0],  // Default position
+        price: 3.0 
+      },
+      { 
+        id: "kiwi-slices", 
+        name: "Kiwi Slices", 
+        price: 3.5,
+        rotation: [-Math.PI/2, 0, 0]  // Flat on the cake
+      },
+      { 
+        id: "raspberry", 
+        name: "Raspberry", 
+        price: 4.0,
+        rotation: [0, 0, 0]
+      },
     ],
+    
     candles: [
-      {    id: "Candle_0", 
+      { 
+        id: "Candle_0", 
         name: "Candle 0", 
         path: "tresD-SE/CAKE-B-3layer/PuttingObjects/Candles/candle_0.glb", 
         position: [0, 1, 0],
         scale: [0.5, 0.5, 0.5],
-        price: 3.0  },
-      {    id: "Candle_1", 
+        rotation: [0, 0, 0],  // Standing upright
+        price: 3.0 
+      },
+      { 
+        id: "Candle_1", 
         name: "Candle_1", 
         path: "tresD-SE/CAKE-B-3layer/PuttingObjects/Candles/candle_1.glb", 
         position: [0, 1, 0],
         scale: [0.5, 0.5, 0.5],
-        price: 3.0  },
-      {    id: "Candle_2", 
+        rotation: [0, 0, 0],  // Standing upright
+        price: 3.0 
+      },
+      { 
+        id: "Candle_2", 
         name: "Candle 2", 
         path: "tresD-SE/CAKE-B-3layer/PuttingObjects/Candles/candle_2.glb", 
         position: [0, 1, 0],
         scale: [0.5, 0.5, 0.5],
-        price: 3.0  },
-      {    id: "Candle_3", 
+        rotation: [0, 0, 0],  // Standing upright
+        price: 3.0 
+      },
+      { 
+        id: "Candle_3", 
         name: "Candle 3", 
         path: "tresD-SE/CAKE-B-3layer/PuttingObjects/Candles/candle_3.glb", 
         position: [0, 1, 0],
         scale: [0.5, 0.5, 0.5],
-        price: 3.0  },
-        {    id: "Candle_4", 
+        rotation: [0, 0, 0],  // Standing upright
+        price: 3.0 
+      },
+      { 
+        id: "Candle_4", 
         name: "Candle 4", 
         path: "tresD-SE/CAKE-B-3layer/PuttingObjects/Candles/candle_4.glb", 
         position: [0, 1, 0],
         scale: [0.5, 0.5, 0.5],
-        price: 3.0  },
-        {    id: "Candle_5", 
+        rotation: [0, 0, 0],  // Standing upright
+        price: 3.0 
+      },
+      { 
+        id: "Candle_5", 
         name: "Candle 5", 
         path: "tresD-SE/CAKE-B-3layer/PuttingObjects/Candles/candle_5.glb", 
         position: [0, 1, 0],
         scale: [0.5, 0.5, 0.5],
-        price: 3.0  },
-        {    id: "Candle_6", 
+        rotation: [0, 0, 0],  // Standing upright
+        price: 3.0 
+      },
+      { 
+        id: "Candle_6", 
         name: "Candle 6", 
         path: "tresD-SE/CAKE-B-3layer/PuttingObjects/Candles/candle_6.glb", 
         position: [0, 1, 0],
         scale: [0.5, 0.5, 0.5],
-        price: 3.0  },
-        {    id: "Candle_7", 
+        rotation: [0, 0, 0],  // Standing upright
+        price: 3.0 
+      },
+      { 
+        id: "Candle_7", 
         name: "Candle 7", 
         path: "tresD-SE/CAKE-B-3layer/PuttingObjects/Candles/candle_7.glb", 
         position: [0, 1, 0],
         scale: [0.5, 0.5, 0.5],
-        price: 3.0  },
-        {    id: "Candle_8", 
+        rotation: [0, 0, 0],  // Standing upright
+        price: 3.0 
+      },
+      { 
+        id: "Candle_8", 
         name: "Candle 8", 
         path: "tresD-SE/CAKE-B-3layer/PuttingObjects/Candles/candle_8.glb", 
         position: [0, 1, 0],
         scale: [0.5, 0.5, 0.5],
-        price: 3.0  },
-        {    id: "Candle_9", 
+        rotation: [0, 0, 0],  // Standing upright
+        price: 3.0 
+      },
+      { 
+        id: "Candle_9", 
         name: "Candle 9", 
         path: "tresD-SE/CAKE-B-3layer/PuttingObjects/Candles/candle_9.glb", 
         position: [0, 1, 0],
         scale: [0.5, 0.5, 0.5],
-        price: 3.0  }
+        rotation: [0, 0, 0],  // Standing upright
+        price: 3.0 
+      }
     ],
     candies: [
-      { id: "chocolate-chips", name: "Chocolate Chips", price: 2.5 },
-      { id: "mini-marshmallows", name: "Mini Marshmallows", price: 2.5 },
-      { id: "candy-buttons", name: "Candy Buttons", price: 3.0 },
-      { id: "jelly-beans", name: "Jelly Beans", price: 3.0 },
+      { 
+        id: "chocolate-chips", 
+        name: "Chocolate Chips", 
+        price: 2.5,
+        rotation: [-Math.PI/2, 0, 0]  // Flat on the cake
+      },
+      { 
+        id: "mini-marshmallows", 
+        name: "Mini Marshmallows", 
+        price: 2.5,
+        rotation: [0, 0, 0]
+      },
+      { 
+        id: "candy-buttons", 
+        name: "Candy Buttons", 
+        price: 3.0,
+        rotation: [-Math.PI/2, 0, 0]  // Flat on the cake
+      },
+      { 
+        id: "jelly-beans", 
+        name: "Jelly Beans", 
+        price: 3.0,
+        rotation: [0, 0, 0]
+      },
     ],
   };
 
@@ -120,6 +235,7 @@ const ElementOptions = () => {
       position: element.position || [0, 10, 0],
       color: element.color || "#FFFFFF",
       scale: element.scale || [1, 1, 1],
+      rotation: element.rotation || [0, 0, 0], // Add this line
       targetedMeshName: element.targetedMeshName || element.id
     };
 

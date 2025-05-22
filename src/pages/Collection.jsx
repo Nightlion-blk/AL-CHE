@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 
 const Collection = () => {
   const { product, search, showSearch } = useContext(ShopContext);
+  const { updateSearch, setShowSearchResults } = useContext(ShopContext);
   const navigate = useNavigate();
 
   const [filterProducts, setFilterProducts] = useState([]);
@@ -14,6 +15,7 @@ const Collection = () => {
   const [showFilter, setShowFilter] = useState(false);
   const [sortType, setSortType] = useState('relevent');
   const [isVisible, setIsVisible] = useState(false); // State for fade-in animation
+  const [localSearch, setLocalSearch] = useState('');
 
   useEffect(() => {
     // Trigger fade-in animation when the component is mounted
@@ -36,19 +38,46 @@ const Collection = () => {
     }
   }, [product]);
 
+  const handleSearch = (e) => {
+    const searchValue = e.target.value;
+    setLocalSearch(searchValue);
+    
+    // Use the context functions if available, otherwise just use local state
+    if (typeof updateSearch === 'function') {
+      updateSearch(searchValue);
+    } else if (window.debug) {
+      console.warn('updateSearch is not available in ShopContext');
+    }
+    
+    if (typeof setShowSearchResults === 'function') {
+      setShowSearchResults(searchValue.length > 0);
+    } else if (window.debug) {
+      console.warn('setShowSearchResults is not available in ShopContext');
+    }
+    
+    // Apply filter directly since we can't rely on context changes
+    setTimeout(() => applyFilter(), 0);
+  };
+
   const applyFilter = () => {
-    // Start with all products except those with 'Deleted' status
     let productsCopy = product.filter(item => item.status !== 'Deleted').slice();
 
-    if (showSearch && search) {
-      productsCopy = productsCopy.filter(item => item.name.toLowerCase().includes(search.toLowerCase()))
+    // Use localSearch if context search isn't working
+    const searchTerm = (showSearch && search) ? search.toLowerCase() : localSearch.toLowerCase();
+    
+    if (searchTerm) {
+      productsCopy = productsCopy.filter(item => 
+        (item.name && item.name.toLowerCase().includes(searchTerm)) || 
+        (item.description && item.description.toLowerCase().includes(searchTerm)) ||
+        (item.category && item.category.toLowerCase().includes(searchTerm))
+      );
     }
 
     if (category.length > 0) {
       productsCopy = productsCopy.filter(item => category.includes(item.category));
     }
 
-    setFilterProducts(productsCopy)
+    setFilterProducts(productsCopy);
   }
 
   const sortProduct = async () => {
@@ -108,6 +137,41 @@ const Collection = () => {
             />
           </p>
 
+          {/* Add search box here */}
+          <div className={`mt-4 ${showFilter ? '' : 'hidden'} sm:block`}>
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search products..."
+                value={localSearch}
+                onChange={handleSearch}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-300 transition-colors"
+              />
+              <div className="absolute top-0 right-0 flex items-center h-full px-3">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              {localSearch && (
+                <button
+                  onClick={() => {
+                    setLocalSearch('');
+                    // Clear context search if needed
+                    if (typeof updateSearch === 'function') {
+                      updateSearch('');
+                    }
+                    setShowSearch(false);
+                  }}
+                  className="absolute top-0 right-10 flex items-center h-full px-2 text-gray-400 hover:text-gray-600"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          </div>
+
           {/* Category Filter */}
           <div
             className={`border border-gray-300 pl-5 py-3 mt-6 ${
@@ -119,18 +183,20 @@ const Collection = () => {
               <p className='flex gap-2'>
                 <input
                   className='w-3'
-                  value={'Shortcrust Pastries'}
+                  value={'Cake'}  
                   onChange={toggleCategory}
                   type='checkbox'
+                  checked={category.includes('Cake')}
                 />{' '}
                 Cakes{' '}
               </p>
               <p className='flex gap-2'>
                 <input
                   className='w-3'
-                  value={'Cakes'}
+                  value={'Cookie'} 
                   onChange={toggleCategory}
                   type='checkbox'
+                  checked={category.includes('Cookie')}
                 />{' '}
                 Cookies{' '}
               </p>
@@ -140,8 +206,27 @@ const Collection = () => {
 
         {/* Right Side */}
         <div className='flex-1'>
-          <div className='flex justify-between text-base sm:text-2xl mb-4'>
-            <Title text1={'ALL'} text2={'COLLECTIONS'} />
+          <div className='flex justify-between items-center text-base sm:text-2xl mb-4'>
+            <div className="flex items-center gap-3">
+              <Title text1={'ALL'} text2={'COLLECTIONS'} />
+              
+              {/* Quick Search Button - visible on all screen sizes */}
+              <button 
+                onClick={() => {
+                  setShowFilter(true);
+                  // Focus on search input after a small delay to allow rendering
+                  setTimeout(() => {
+                    document.querySelector('input[placeholder="Search products..."]')?.focus();
+                  }, 100);
+                }}
+                className="ml-2 p-2 bg-pink-100 hover:bg-pink-200 text-pink-800 rounded-full transition-colors"
+                title="Quick Search"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </button>
+            </div>
 
             {/* Product Sort */}
             <select
@@ -155,6 +240,14 @@ const Collection = () => {
               <option value='high-low'>Sort by: High to Low</option>
             </select>
           </div>
+          
+          {/* Show search results count when searching */}
+          {showSearch && search && (
+            <div className="mb-4 text-sm">
+              <span className="font-medium">Search results for "{search}":</span> 
+              <span className="ml-1">{filterProducts.length} products found</span>
+            </div>
+          )}
 
           {/* Map Products */}
           <div className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 gap-y-6 rounded-lg'>

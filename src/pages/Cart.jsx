@@ -17,7 +17,8 @@ const Cart = () => {
     token,
     userName,
     detailedCartItems,
-    cartHeader
+    cartHeader,
+    getUserCart
   } = useContext(ShopContext);
 
   const [isVisible, setIsVisible] = useState(false); // State for animation
@@ -26,6 +27,8 @@ const Cart = () => {
   const cartItems = Array.isArray(detailedCartItems) ? detailedCartItems : [];
 
   const defaultImageUrl = assets.image1 || "/default-product.jpg";
+
+ 
 
   useEffect(() => {
     // Fade-in animation when the component is mounted
@@ -118,7 +121,7 @@ const Cart = () => {
 
   const handleCheckout = async () => {
     if (cartItems.length === 0) {
-      toast.error("Your cart is empty");
+      console.log("Your cart is empty");
       return;
     }
     const userEmail = localStorage.getItem('userEmail') || 'customer@example.com';
@@ -135,7 +138,7 @@ const Cart = () => {
 
     try {
       if (!cartHeader?.cartId) {
-        toast.error("Cart information is missing");
+        console.log("Cart information is missing");
         return;
       }
 
@@ -158,7 +161,7 @@ const Cart = () => {
       window.location.href = response.data.data.checkoutUrl;
     } catch (error) {
       console.error('Checkout error:', error.response?.data || error.message);
-      toast.error('Payment processing failed. Please try again.');
+     console.log('Payment processing failed. Please try again.');
     }
   };
 

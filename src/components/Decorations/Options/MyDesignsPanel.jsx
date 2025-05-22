@@ -21,24 +21,28 @@ const MyDesignsPanel = ({ setActiveTab, onDesignSelect }) => {
         console.log("API Response:", response);
 
         // Make sure we handle different response formats
-        let designsArray = [];
-        
-        if (Array.isArray(response)) {
-          designsArray = response;
-        } else if (response && response.data && Array.isArray(response.data)) {
-          // This is the format we're getting from the API: {success: true, count: 3, data: Array(3)}
-          designsArray = response.data;
-          console.log("Found designs in response.data:", designsArray.length);
-        } else if (response && Array.isArray(response.designs)) {
-          designsArray = response.designs;
-        } else {
-          console.warn("Could not find designs array in response:", response);
-        }
-        
-        // Log the first design to check if it has previewImage
-        if (designsArray.length > 0) {
-          console.log("First design preview available:", !!designsArray[0].previewImage);
-        }
+       let designsArray = [];
+if (Array.isArray(response)) {
+  designsArray = response;
+} else if (response && response.data && Array.isArray(response.data)) {
+  designsArray = response.data;
+} else if (response && Array.isArray(response.designs)) {
+  designsArray = response.designs;
+} else if (response && typeof response === 'object') {
+  // Try to find any array in the response
+  for (const key in response) {
+    if (Array.isArray(response[key])) {
+      console.log(`Found potential designs array in response.${key}`);
+      designsArray = response[key];
+      break;
+    }
+  }
+}
+
+// Check if designs have the required properties
+if (designsArray.length > 0) {
+  console.log("First design structure:", JSON.stringify(designsArray[0], null, 2));
+}
         
         setDesigns(designsArray); // Always set an array
         setError(null);
@@ -58,23 +62,27 @@ const MyDesignsPanel = ({ setActiveTab, onDesignSelect }) => {
     }
   }, [getUserCakeDesigns, token]);
   
- const handleLoadDesign = async (designId) => {
+const handleLoadDesign = async (designId) => {
   try {
     console.log("MyDesignsPanel: Loading design with ID:", designId);
     
     // Call the parent handler instead of loadCakeDesign directly
     if (onDesignSelect) {
+      console.log("MyDesignsPanel: Calling parent onDesignSelect with ID:", designId);
       onDesignSelect(designId);
     } else {
       // Try direct loading if parent handler isn't available
       console.warn("MyDesignsPanel: onDesignSelect not provided, trying direct loading");
       setLoading(true);
-      await loadCakeDesign(designId);
+      const designData = await loadCakeDesign(designId);
+      console.log("Design loaded directly:", designData);
       setLoading(false);
+      toast.success("Design loaded via direct method");
     }
   } catch (err) {
     console.error("Error loading design:", err);
     setError('Failed to load design');
+    toast.error("Loading design failed");
   }
 };
   
@@ -206,6 +214,33 @@ const MyDesignsPanel = ({ setActiveTab, onDesignSelect }) => {
           design={selectedDesignForReceipt}
         />
       )}
+
+      {designs.length > 0 && (
+  <div className="mt-4 p-2 bg-yellow-50 rounded border border-yellow-200">
+    <details>
+      <summary className="text-sm font-medium text-yellow-700 cursor-pointer">
+        Debug Information
+      </summary>
+      <div className="mt-2 text-xs">
+        <p>Found {designs.length} designs</p>
+        <p className="mt-1">First design ID: {designs[0]._id}</p>
+        <p className="mt-1">Has onDesignSelect: {onDesignSelect ? "Yes" : "No"}</p>
+        <div className="mt-2">
+          <button
+            onClick={() => {
+              if (designs.length > 0) {
+                console.log("DEBUG: Design structure:", designs[0]);
+              }
+            }}
+            className="px-2 py-1 bg-yellow-500 text-white text-xs rounded mr-2"
+          >
+            Log First Design
+          </button>
+        </div>
+      </div>
+    </details>
+  </div>
+)}
     </div>
   );
 };

@@ -1,48 +1,33 @@
 import { useThree } from '@react-three/fiber';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 
 const CanvasScreenshot = ({ onScreenshot }) => {
   const { gl, scene, camera } = useThree();
-  const [isReady, setIsReady] = useState(false);
   
   useEffect(() => {
-    // Wait for the scene to be fully rendered
-    const timeout = setTimeout(() => {
-      setIsReady(true);
-    }, 500);
-    
-    return () => clearTimeout(timeout);
-  }, []);
-  
-  useEffect(() => {
-    if (!isReady) return;
-    
-    // Function to take a screenshot
+    // Function to take a screenshot on demand
     const takeScreenshot = () => {
-      console.log("Taking screenshot of Three.js canvas");
+      console.log("Taking screenshot for thumbnail...");
       
       // Make sure everything is rendered
       gl.render(scene, camera);
       
       // Get the data URL
       const dataURL = gl.domElement.toDataURL('image/png');
-      console.log("Screenshot captured, size:", dataURL.length);
+      console.log("Screenshot captured for thumbnail, size:", dataURL.length);
       
       // Call the callback with the screenshot
       onScreenshot(dataURL);
       return dataURL;
     };
     
-    // Take an initial screenshot when component is ready
-    takeScreenshot();
-    
-    // Add a global method to take screenshots on demand
+    // Only expose the method globally, don't take screenshot immediately
     window.takeCanvasScreenshot = takeScreenshot;
     
     return () => {
       delete window.takeCanvasScreenshot;
     };
-  }, [gl, scene, camera, onScreenshot, isReady]);
+  }, [gl, scene, camera, onScreenshot]);
   
   return null;
 };

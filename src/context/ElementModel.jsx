@@ -31,6 +31,7 @@ class ElementModel {
   setPrice(price) { this.price = price; return this; }
   setTextures(textures) { this.textureMap = textures; return this; }
   setScale(scale) { this.scale = scale; return this; }
+  setRotation(rotation) { this.rotation = rotation; return this; }
   
   getProperties() {
     return {
@@ -41,6 +42,7 @@ class ElementModel {
       targetedMeshName: this.targetedMeshName,
       price: this.price,
       scale: this.scale,
+      rotation: this.rotation || [0, 0, 0]  // Add this line
     };
   }
 }

@@ -4,20 +4,34 @@ import { ShopContext } from '../../context/ShopContext';
 import { Database, HardDrive, Menu, Check, X, FileText, ShoppingCart } from 'lucide-react';
 import Receipt from './Receipt';
 
-// Use canvasImageUrl prop
-const SaveButton = ({ onSaveComplete, canvasImageUrl }) => {
-  const { cakeState, saveCakeDesign, token } = useCakeContext();
-  const { addCustomCakeToCart } = useContext(ShopContext);
+const SaveButton = ({ onSaveComplete }) => {
+  const { cakeState, saveCakeDesign, currentDesignName, setCurrentDesignName } = useCakeContext();
+  // Get userName from ShopContext - make sure we destructure it here
+  const { addCustomCakeToCart, userName, getUserCart, token } = useContext(ShopContext);
   const [isOpen, setIsOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState(null);
   const [saveType, setSaveType] = useState(null);
   const [designName, setDesignName] = useState('My Cake Design');
   const [showNameInput, setShowNameInput] = useState(false);
-  const [nameInputAction, setNameInputAction] = useState(null); // 'database' or 'cart'
+  const [nameInputAction, setNameInputAction] = useState(null);
   const dropdownRef = useRef(null);
   const [showReceipt, setShowReceipt] = useState(false);
-  const [previewImage, setPreviewImage] = useState(null); // Add this state variable
+  const [previewImage, setPreviewImage] = useState(null);
+
+  // Update design name when currentDesignName changes or component mounts
+  useEffect(() => {
+    if (currentDesignName) {
+      setDesignName(currentDesignName);
+      console.log("SaveButton: Using design name from context:", currentDesignName);
+    } else {
+      // Set a default name that includes the user name if available
+      const defaultName = userName ? 
+        `${userName}'s Cake Design` : 
+        `Cake Design (${new Date().toLocaleDateString()})`;
+      setDesignName(defaultName);
+    }
+  }, [currentDesignName, userName]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -31,27 +45,26 @@ const SaveButton = ({ onSaveComplete, canvasImageUrl }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Function to capture screenshot from Three.js scene
+  // Function to capture screenshot from Three.js scene - only when needed
   const captureThreeCanvas = () => {
     try {
-      console.log("Capturing Three.js canvas");
+      console.log("Taking screenshot for save/thumbnail...");
       
-      // First try to use the passed URL
-      if (canvasImageUrl) {
-        console.log("Using pre-captured canvas image");
-        setPreviewImage(canvasImageUrl);
-        return canvasImageUrl;
-      }
-      
-      // Try to use the global screenshot function
+      // Always get fresh screenshot when saving
       if (window.takeCanvasScreenshot) {
-        console.log("Triggering fresh screenshot capture");
+        console.log("Capturing fresh screenshot");
         const dataURL = window.takeCanvasScreenshot();
         setPreviewImage(dataURL);
         return dataURL;
       }
       
-      console.error("No canvas image available");
+      // Fallback to existing preview if available
+      if (previewImage) {
+        console.log("Using existing preview image");
+        return previewImage;
+      }
+      
+      console.error("No screenshot method available");
       return null;
     } catch (error) {
       console.error('Error capturing Three.js canvas:', error);
@@ -66,12 +79,19 @@ const SaveButton = ({ onSaveComplete, canvasImageUrl }) => {
       setSaveStatus('saving');
       setIsOpen(false);
 
-      // Capture the canvas as image
+      // Update the design name in context so other components can access it
+      setCurrentDesignName(designName);
+
+      // Capture the canvas as image - only at save time
       const snapshotImage = captureThreeCanvas();
+      if (!snapshotImage) {
+        throw new Error('Failed to capture cake design preview');
+      }
 
       // Create data object with all the cake details
       const cakeData = {
         ...cakeState,
+        name: designName, // Include the name in the saved data
         savedAt: new Date().toISOString(),
         previewImage: snapshotImage, // Add the screenshot
       };
@@ -87,12 +107,12 @@ const SaveButton = ({ onSaveComplete, canvasImageUrl }) => {
         }
         
         // Save to database using context function with screenshot
-        // Fixed order of parameters: name, description, isPublic, previewImage
+        // The userName from ShopContext will be automatically used by the updated saveCakeDesign function
         await saveCakeDesign(
           designName, 
           `Cake design created on ${new Date().toLocaleDateString()}`,
-          true, // isPublic parameter
-          snapshotImage // previewImage as the 4th parameter
+          true,
+          snapshotImage
         );
         setSaveStatus('success');
       }
@@ -111,7 +131,7 @@ const SaveButton = ({ onSaveComplete, canvasImageUrl }) => {
       console.error(`Error saving cake design to ${type}:`, error);
       setSaveStatus('error');
       
-      // Clear error status after 3 seconds
+      // Clear status after 3 seconds
       setTimeout(() => {
         setSaveStatus(null);
         setSaveType(null);
@@ -135,8 +155,6 @@ const SaveButton = ({ onSaveComplete, canvasImageUrl }) => {
     setNameInputAction('database');
     setShowNameInput(true);
   };
-
-
 
   const confirmDatabaseSave = () => {
     setShowNameInput(false);
@@ -165,16 +183,11 @@ const SaveButton = ({ onSaveComplete, canvasImageUrl }) => {
     try {
       setIsSaving(true);
       
-      // Force a new screenshot if possible
-      if (window.takeCanvasScreenshot) {
-        window.takeCanvasScreenshot();
-        
-        // Small delay to ensure screenshot is processed
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
-      
-      // Get the image (either from previous screenshot or new one)
+      // Always capture a fresh screenshot when adding to cart
       const snapshotImage = captureThreeCanvas();
+      if (!snapshotImage) {
+        throw new Error('Failed to capture cake design preview');
+      }
       
       // Create temporary design object
       const designToSave = {
@@ -198,7 +211,7 @@ const SaveButton = ({ onSaveComplete, canvasImageUrl }) => {
       
       // Create a proper design object with _id property
       if (savedDesign && savedDesign.data && savedDesign.data._id) {
-        // THIS IS THE KEY CHANGE - create a proper object with _id property
+        // Create a proper object with _id property
         const designObject = { 
           _id: savedDesign.data._id,
           name: designName,
@@ -222,6 +235,7 @@ const SaveButton = ({ onSaveComplete, canvasImageUrl }) => {
         // Pass the OBJECT, not just the ID
         await addCustomCakeToCart(designObject, cakeOptions, price);
         
+        await getUserCart(token)
         // Set success status
         setSaveStatus('success');
         setSaveType('cart');
@@ -249,6 +263,11 @@ const SaveButton = ({ onSaveComplete, canvasImageUrl }) => {
   
   return (
     <div className="relative" ref={dropdownRef}>
+      {/* Current design name display - add this at the top of your component */}
+      <div className="mb-2 text-sm font-medium text-gray-700 truncate">
+        {designName}
+      </div>
+
       <button
         onClick={() => setIsOpen(!isOpen)}
         disabled={isSaving}
@@ -390,7 +409,7 @@ const SaveButton = ({ onSaveComplete, canvasImageUrl }) => {
         />
       )}
 
-      {/* Preview Image Section */}
+      {/* Preview Image Section - only shown when a screenshot exists */}
       {previewImage && (
         <div className="mt-2 border rounded p-2 bg-white">
           <p className="text-xs text-gray-500 mb-1">Preview:</p>

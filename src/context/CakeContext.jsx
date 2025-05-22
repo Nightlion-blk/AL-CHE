@@ -3,7 +3,7 @@ import { RenderCake, BaseModel } from '../models/CakeModels';
 import ElementModel from "./ElementModel";
 import PropTypes from "prop-types";
 import axios from "axios";
-import { ShopContext } from "./ShopContext"; // Import ShopContext
+import { ShopContext } from "./ShopContext"; // Make sure this import is present
 
 // Initial state with history tracking
 const initialState = {
@@ -59,6 +59,10 @@ const rebuildFromHistory = (historicalState) => {
       model.setTargetedMeshName(elData.properties.targetedMeshName);
       model.setPrice(elData.properties.price);
       model.setScale(elData.properties.scale);
+      // Add this line to restore rotation
+      if (elData.properties.rotation) {
+        model.setRotation(elData.properties.rotation);
+      }
       return model;
     }
     return elData;
@@ -117,50 +121,123 @@ const cakeReducer = (state, action) => {
     ...state,
     cakeModel: action.payload
     };
-    case "SET_CAKE_COLOR":
-      return addToHistory({ ...state, cakeColor: action.payload });
-    case "SET_FLAVOUR":
-      return addToHistory({ ...state, flavour: action.payload });
-    case "ADD_ELEMENT": {
-      const newElementProps = action.cakeModelProps;
-      const newElementModel = new ElementModel(newElementProps.path);
+    case "SET_CAKE_COLOR": {
+      const newState = { ...state, cakeColor: action.payload };
       
-      // Add a unique ID to each element
-      newElementModel.uniqueId = Date.now() + Math.random().toString(36).substring(2);
-      
-      // Use the proper setter methods we've already defined in ElementModel
-      newElementModel.setName(newElementProps.name || newElementProps.id || "Element");
-      newElementModel.setPosition(newElementProps.position || [0, 0, 0]);
-      newElementModel.setColor(newElementProps.color || "#FFFFFF");
-      newElementModel.setTargetedMeshName(newElementProps.targetedMeshName || "default");
-      newElementModel.setPrice(newElementProps.price || 0);
-      
-      if (newElementProps.textures) {
-        newElementModel.setTextures(newElementProps.textures);
+      // Update the cake model's color if it exists
+      if (newState.cakeModel) {
+        // Clone the cake model
+        const updatedCakeModel = { ...newState.cakeModel };
+        
+        // Update the color
+        updatedCakeModel.color = action.payload;
+        
+        // Replace the cake model with updated version
+        newState.cakeModel = updatedCakeModel;
       }
       
-      if (newElementProps.scale) {
-        newElementModel.setScale(newElementProps.scale);
-      }
-      
-      // Store the element data in state and add to history
-      return addToHistory({
-        ...state,
-        elements: [...state.elements, newElementModel],
-      });
+      return addToHistory(newState);
     }
+    case "SET_FLAVOUR": {
+  const newState = { ...state, flavour: action.payload };
+  
+  // If the flavor has a primary color, update the cake color too
+  if (action.payload && action.payload.primary) {
+    newState.cakeColor = action.payload.primary;
+    
+    // If we have a cake model, update its color too
+    if (newState.cakeModel) {
+      const updatedCakeModel = { ...newState.cakeModel };
+      
+      // Create or update the color object
+      if (!updatedCakeModel.color) updatedCakeModel.color = {};
+      
+      // Update both the model's main color and specific colors
+      updatedCakeModel.color = {
+        ...updatedCakeModel.color,
+        primary: action.payload.primary,
+        batter: action.payload.primary
+      };
+      
+      // If there's a secondary color, use it for cream
+      if (action.payload.secondary) {
+        updatedCakeModel.color.cream = action.payload.secondary;
+      }
+      
+      newState.cakeModel = updatedCakeModel;
+    }
+  }
+  
+  return addToHistory(newState);
+}
+    case "ADD_ELEMENT": {
+  // Verify the payload has all required properties
+  if (!action.cakeModelProps || typeof action.cakeModelProps !== 'object') {
+    console.error("Invalid element payload:", action.cakeModelProps);
+    return state; // Return unchanged state instead of crashing
+  }
+  
+  try {
+    const newElementProps = action.cakeModelProps;
+    
+    // Safely create ElementModel with path validation
+    const newElementModel = new ElementModel(newElementProps.path || "");
+    
+    // Add a unique ID to each element
+    newElementModel.uniqueId = newElementProps.uniqueId || 
+                             (Date.now() + Math.random().toString(36).substring(2));
+    
+    // Use the proper setter methods with fallbacks for missing properties
+    newElementModel.setName(newElementProps.name || newElementProps.id || "Element");
+    newElementModel.setPosition(newElementProps.position || [0, 0, 0]);
+    newElementModel.setColor(newElementProps.color || "#FFFFFF");
+    newElementModel.setTargetedMeshName(newElementProps.targetedMeshName || "default");
+    newElementModel.setPrice(newElementProps.price || 0);
+    
+    if (newElementProps.textures) {
+      newElementModel.setTextures(newElementProps.textures);
+    }
+    
+    if (newElementProps.scale) {
+      newElementModel.setScale(newElementProps.scale);
+    }
+    
+    // Add this rotation check
+    if (newElementProps.rotation) {
+      newElementModel.setRotation(newElementProps.rotation);
+    }
+    
+    // Store the element data in state and add to history
+    return addToHistory({
+      ...state,
+      elements: [...state.elements, newElementModel],
+    });
+  } catch (error) {
+    console.error("Error creating element:", error);
+    return state; // Return unchanged state on error
+  }
+}
     case "REMOVE_ELEMENT":
-      return addToHistory({
-        ...state,
-        elements: state.elements.filter((el) => el !== action.payload),
-      });
+  console.log("Reducer: removing element at index", action.index);
+  console.log("Before:", state.elements.length, "elements");
+  const newElements = [...state.elements];
+  newElements.splice(action.index, 1);
+  console.log("After:", newElements.length, "elements");
+  return addToHistory({
+    ...state,
+    elements: newElements
+  });
+  
     case "SET_TOPPER":
       return addToHistory({ ...state, topper: action.payload });
     case "SET_MESSAGE": {
-  return addToHistory({
+  console.log("Setting message text:", action.payload);
+  return {
     ...state,
-    message: action.payload
-  });
+    message: action.payload,
+    // IMPORTANT: Set default rotation here if none exists
+    messageRotation: state.messageRotation || [-Math.PI/2, 0, 0]
+  };
 }
 
 case "SET_CAKE_TOP_POSITION": {
@@ -196,6 +273,13 @@ case "SET_MESSAGE_SCALE": {
     messageScale: action.payload,
     history: [...state.history.slice(0, state.currentIndex + 1), state],
     currentIndex: state.currentIndex + 1
+  };
+}
+    case "SET_MESSAGE_ROTATION": {
+  console.log("Reducer: Setting message rotation to:", action.payload);
+  return {
+    ...state,
+    messageRotation: action.payload
   };
 }
     case "UNDO": {
@@ -262,7 +346,6 @@ case "SET_LOADING": {
     };
   }
   
-  // Convert plain objects to ElementModel instances
   const elements = action.payload.map(element => {
     if (element instanceof ElementModel) {
       return element;
@@ -279,6 +362,9 @@ case "SET_LOADING": {
     if (element.price !== undefined) model.setPrice(element.price);
     if (element.scale) model.setScale(element.scale);
     
+    // Add this line to handle rotation
+    if (element.rotation) model.setRotation(element.rotation);
+    
     return model;
   });
   
@@ -286,6 +372,44 @@ case "SET_LOADING": {
     ...state,
     elements: elements
   };
+}
+    // Add a new reducer case for frosting
+case "ADD_FROSTING": {
+  return addToHistory({
+    ...state,
+    frosting: [...(state.frosting || []), action.payload]
+  });
+}
+
+case "CLEAR_FROSTING": {
+  return addToHistory({
+    ...state,
+    frosting: []
+  });
+}
+
+case "UPDATE_ELEMENT_POSITION": {
+  const elements = [...state.elements];
+  if (elements[action.index]) {
+    const element = elements[action.index];
+    element.setPosition(action.position);
+  }
+  return addToHistory({
+    ...state,
+    elements
+  });
+}
+
+case "UPDATE_ELEMENT_ROTATION": {
+  const elements = [...state.elements];
+  if (elements[action.index]) {
+    // Use the setRotation method instead of directly modifying the object
+    elements[action.index].setRotation(action.rotation);
+  }
+  return addToHistory({
+    ...state,
+    elements
+  });
 }
     default:
       return state;
@@ -296,7 +420,11 @@ export const CakeContextProvider = ({ children }) => {
   const [cakeState, dispatch] = useReducer(cakeReducer, initialState);
   const [token, setToken] = useState('');
   const [userId, setUserId] = useState('');
-const API_URL = import.meta.env.VITE_API_URL
+  const [currentDesignName, setCurrentDesignName] = useState('My Cake Design');
+  const API_URL = import.meta.env.VITE_API_URL;
+  
+  // Access ShopContext to get userName
+  const shopContext = useContext(ShopContext);
   
   // Load token and user data from localStorage on mount
   useEffect(() => {
@@ -312,64 +440,126 @@ const API_URL = import.meta.env.VITE_API_URL
     }
   }, []);
 
-const saveCakeDesign = async (name, description = "", isPublic = false, previewImage = null) => {
-  try {
-    console.log("Saving cake design:", name);
-    
-    // Check for authentication
-    if (!token) {
-      throw new Error("Authentication required. Please log in.");
-    }
-
-    // Extract only the properties the backend expects
-    const payload = {
-      userId, // The userId from context
-      name,
-      description,
-      isPublic,
-      previewImage, // Add the preview image parameter
+  const saveCakeDesign = async (name, description = "", isPublic = false, previewImage = null) => {
+    try {
+      console.log("Saving cake design:", name);
       
-      // Cake properties needed by backend
-      cakeModel: cakeState.cakeModel,
-      cakePlacement: cakeState.cakePlacement,
-      elements: cakeState.elements,
-      message: cakeState.message,
-      messageColor: cakeState.messageColor,
-      messageFont: cakeState.messageFont,
-      messagePosition: cakeState.messagePosition,
-      messageRotation: cakeState.messageRotation || [0, 0, 0]
-    };
-
-    // Get username from localStorage if possible
-    const userData = JSON.parse(localStorage.getItem('user') || '{}');
-    if (userData.username) {
-      payload.username = userData.username;
-    }
-    
-    console.log("Sending cake design payload:", { 
-      designName: name,
-      hasPreviewImage: !!previewImage,
-      userId 
-    });
-    
-    const response = await axios.post(
-      `${API_URL}/createCake`,
-      payload,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+      // Check for authentication
+      if (!token) {
+        throw new Error("Authentication required. Please log in.");
       }
-    );
+
+      // Convert ElementModel instances to plain objects with proper serialization
+      const elementsToSave = cakeState.elements.map(element => ({
+        path: element.path,
+        position: element.position,
+        rotation: element.rotation || [0, 0, 0],
+        rotationType: 'XYZ', // Add this to ensure proper rotation type
+        scale: element.scale || [1, 1, 1],
+        color: element.color,
+        targetedMeshName: element.targetedMeshName,
+        uniqueId: element.uniqueId
+      }));
+
+      // Log element rotations and positions being saved
+      console.log("===== ELEMENT ROTATIONS BEING SAVED =====");
+      cakeState.elements.forEach((element, index) => {
+        console.log(`Element ${index}: ${element.name || 'unnamed'} (${element.path?.split('/').pop() || 'no-path'})`);
+        console.log(`  - Rotation: [${element.rotation?.[0] || 0}, ${element.rotation?.[1] || 0}, ${element.rotation?.[2] || 0}]`);
+        console.log(`  - Position: [${element.position?.[0] || 0}, ${element.position?.[1] || 0}, ${element.position?.[2] || 0}]`);
+      });
+
+      // Extract and prepare all the properties the backend expects
+      const payload = {
+        userId, // The userId from context
+        name,
+        description,
+        isPublic,
+        previewImage,
+        // Add username directly in initial payload with a default
+        username: "Anonymous User", // This guarantees a username exists even if all lookups fail
+        cakeModel: cakeState.cakeModel,
+        cakePlacement: cakeState.cakePlacement,
+        elements: elementsToSave, // Use the serialized elements array
+        message: cakeState.message,
+        messageColor: cakeState.messageColor,
+        messageFont: cakeState.messageFont,
+        messagePosition: cakeState.messagePosition,
+        // IMPORTANT: Always include default rotation if none exists
+        messageRotation: (cakeState.messageRotation && Array.isArray(cakeState.messageRotation) && cakeState.messageRotation.length === 3) 
+          ? cakeState.messageRotation 
+          : [-Math.PI/2, 0, 0],
+        messageScale: cakeState.messageScale 
+      };
+
+      // Add this debug log to verify
+      console.log("Saving messageRotation:", payload.messageRotation);
+
+      // IMPROVED USERNAME HANDLING:
+      // 1. First check ShopContext
+      if (shopContext && shopContext.userName) {
+        // Extract the actual username string, not the whole object
+        payload.username = typeof shopContext.userName === 'object' && shopContext.userName.name 
+          ? shopContext.userName.name 
+          : shopContext.userName;
+        console.log("Using userName from ShopContext:", payload.username);
+      } 
+      // 2. Then check localStorage for user data
+      else {
+        const userData = JSON.parse(localStorage.getItem('user') || '{}');
+        if (userData.username) {
+          payload.username = userData.username;
+          console.log("Using username from localStorage:", userData.username);
+        } 
+        // 3. If nothing found in localStorage user object, check separate username field
+        else {
+          const directUsername = localStorage.getItem('username');
+          if (directUsername) {
+            payload.username = directUsername;
+            console.log("Using username from direct localStorage field:", directUsername);
+          }
+          else {
+            // 4. Fallback to a default if we can't find a username anywhere
+            payload.username = "Anonymous User";
+            console.log("Using default username - no username found in context or storage");
+          }
+        }
+      }
+      
+      // Update the current design name in context
+      setCurrentDesignName(name);
+      
+      console.log("Sending cake design payload:", { 
+        designName: name,
+        username: payload.username,
+        hasPreviewImage: !!previewImage,
+        userId 
+      });
     
-    // Return the response data
-    return response.data;
-  } catch (error) {
-    console.error("Error saving cake design:", error);
-    throw error;
-  }
-}
+      const response = await axios.post(
+        `${API_URL}/createCake`,
+        payload,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+        }
+      );
+      
+      console.log("Save cake design response:", response.data);
+      
+      // Return the response data in a standardized format
+      return {
+        success: response.data.success,
+        data: response.data.data,
+        message: response.data.message
+      };
+    } catch (error) {
+      console.error("Error saving cake design:", error);
+      throw error;
+    }
+  };
 
 const getUserCakeDesigns = async () => {
   try {
@@ -378,34 +568,49 @@ const getUserCakeDesigns = async () => {
       throw new Error("Authentication required. Please log in.");
     }
 
+    console.log("Fetching cake designs for user:", userId);
+    
     const response = await axios.get(
       `${API_URL}/cake/${userId}`,
       {
         headers: {
           'Authorization': `Bearer ${token}`
         },
+        // Add pagination support
+        params: {
+          limit: 100, // Higher limit to get more designs
+          page: 1
+        }
       }
     );
+    
     console.log("User cake designs response:", response.data);
-    return response.data;
+    
+    // Return the full response data to access pagination info if needed
+    if (response.data.success) {
+      return {
+        success: true,
+        designs: response.data.data,
+        total: response.data.total,
+        pages: response.data.pages
+      };
+    } else {
+      throw new Error(response.data.message || "Failed to fetch designs");
+    }
   } catch (error) {
     console.error("Error fetching user cake designs:", error);
     throw error;
   }
-}
+};
 
 const loadCakeDesign = async (designId) => {
   try {
-    console.log("CakeContext: Loading design with ID:", designId);
+    console.log("CakeContext: Fetching design with ID:", designId);
     
     if (!token) {
       throw new Error("Authentication required. Please log in.");
     }
     
-    // Set loading state
-    dispatch({ type: "SET_LOADING", payload: true });
-    
-    // Updated URL to use the correct endpoint (adjust path if needed)
     const response = await axios.get(
       `${API_URL}/userCake/${designId}`,
       {
@@ -415,80 +620,172 @@ const loadCakeDesign = async (designId) => {
       }
     );
     
-    // The controller returns { success: true, data: design }
-    const responseData = response.data;
-    console.log("CakeContext: Raw API response:", responseData);
+    // Log the full response for debugging
+    console.log("CakeContext: Raw API response:", response.data);
     
-    // Check if we have valid data
-    if (!responseData.success || !responseData.data) {
-      throw new Error("Invalid design data received");
+    // Better response handling based on the updated controller
+    if (!response.data.success) {
+      throw new Error(response.data.message || "Failed to load design");
     }
     
-    // Extract the design data from response.data.data
-    const design = responseData.data;
-    console.log("CakeContext: Design data:", design);
+    const designData = response.data.data;
+    const isOwner = response.data.isOwner; // New field from the controller
     
-    // Update cake model
-    if (design.cakeModel && design.cakeModel.path) {
-      console.log("CakeContext: Setting cake model:", design.cakeModel);
-      
-      // Create a proper model instance instead of using the raw API data
-        const cakeModelInstance = RenderCake(
-        design.cakeModel.name || "Loaded Cake",
-        design.cakeModel.path,
-        design.cakeModel.position || [0, 0, 0],
-        design.cakeModel.color || { r: 1, g: 1, b: 1 },
-        design.cakeModel.targetedMeshName || ["Cake"],
-        design.cakeModel.textureMap || {},
-        design.cakeModel.price || 0,
-        design.message || ""
-      );
-      
-      // Dispatch with the proper instance
-      dispatch({ type: "SET_CAKE_MODEL", payload: cakeModelInstance });
-    } else {
-      console.warn("CakeContext: Design has no valid cakeModel");
+    // Set the current design name from the loaded design
+    if (designData.name) {
+      setCurrentDesignName(designData.name);
+      console.log("CakeContext: Loaded design name:", designData.name);
     }
     
-    // The rest of your existing code...
-    // Update cake placement
-    if (design.cakePlacement) {
-      dispatch({ type: "UPDATE_CAKE_PLACEMENT", payload: design.cakePlacement });
+    console.log("CakeContext: Processed design data:", designData);
+    console.log("CakeContext: User is owner:", isOwner);
+    
+    // Log element rotations and positions from the database
+    console.log("===== ELEMENT ROTATIONS FROM DATABASE =====");
+    if (designData.elements && Array.isArray(designData.elements)) {
+      designData.elements.forEach((element, index) => {
+        console.log(`Element ${index}: ${element.path?.split('/').pop() || 'unknown'}`);
+        console.log(`  - Rotation: [${element.rotation?.[0] || 0}, ${element.rotation?.[1] || 0}, ${element.rotation?.[2] || 0}]`);
+        console.log(`  - Position: [${element.position?.[0] || 0}, ${element.position?.[1] || 0}, ${element.position?.[2] || 0}]`);
+      });
     }
     
-    // Update elements
-    if (Array.isArray(design.elements)) {
-      console.log("CakeContext: Setting elements:", design.elements);
-      dispatch({ type: "SET_ELEMENTS", payload: design.elements });
-    } else {
-      dispatch({ type: "SET_ELEMENTS", payload: [] });
-    }
-    
-    // Update message properties
-    if (design.message !== undefined) {
-      dispatch({ type: "UPDATE_MESSAGE", payload: design.message });
-    }
-    
-    if (design.messagePosition && design.messagePosition.length === 3) {
-      dispatch({ type: "SET_MESSAGE_POSITION", payload: design.messagePosition });
-    }
-    
-    if (design.messageRotation && design.messageRotation.length === 3) {
-      dispatch({ type: "SET_MESSAGE_ROTATION", payload: design.messageRotation });
-    }
-    
-    // Reset loading state
-    dispatch({ type: "SET_LOADING", payload: false });
-    
-    return design;
+    // Return the design data with ownership information
+    return {
+      ...designData,
+      isOwner
+    };
   } catch (error) {
-    console.error("Error loading cake design:", error);
-    dispatch({ type: "SET_LOADING", payload: false });
+    console.error("Error fetching cake design:", error);
     throw error;
   }
 };
+
+const deleteCakeDesign = async (designId) => {
+  try {
+    console.log("Deleting cake design with ID:", designId);
+    
+    if (!token) {
+      throw new Error("Authentication required. Please log in.");
+    }
+    
+    const response = await axios.delete(
+      `${API_URL}/delete/${designId}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+      }
+    );
+    
+    console.log("Delete response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Error deleting cake design:", error);
+    throw error;
+  }
+}
+
+const getAllDesigns = async (options = {}) => {
+  try {
+    console.log("Fetching all public cake designs");
+    
+    // Build query parameters
+    const params = new URLSearchParams();
+    
+    // Add optional filtering parameters
+    if (options.limit) params.append('limit', options.limit);
+    if (options.page) params.append('page', options.page);
+    if (options.sort) params.append('sort', options.sort);
+    if (options.isPublic !== undefined) params.append('isPublic', options.isPublic);
+    if (options.username) params.append('username', options.username);
+    if (options.search) params.append('search', options.search);
+    
+    // Convert params to string
+    const queryParams = params.toString() ? `?${params.toString()}` : '';
+    
+    // Make API request - token is optional for public designs
+    const headers = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
+    const response = await axios.get(
+      `${API_URL}/getall${queryParams}`,
+      { headers }
+    );
+    
+    console.log("All designs response:", response.data);
+    
+    // Return structured response with pagination info
+    if (response.data.success) {
+      return {
+        success: true,
+        designs: response.data.data,
+        total: response.data.total || response.data.data.length,
+        pages: response.data.pages || 1,
+        currentPage: response.data.currentPage || options.page || 1
+      };
+    } else {
+      throw new Error(response.data.message || "Failed to fetch designs");
+    }
+  } catch (error) {
+    console.error("Error fetching all cake designs:", error);
+    throw error;
+  }
+};
+
+const getDesignById = async (designId) => {
+  try {
+    console.log("Fetching cake design with ID:", designId);
+    
+    // Include authorization token if available
+    const headers = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
+    const response = await axios.get(
+      `${API_URL}/userCake/${designId}`,
+      { headers }
+    );
+    
+    if (response.data.success) {
+      // Return both the design data and whether user is owner
+      return {
+        success: true,
+        design: {
+          ...response.data.data,
+          isOwner: response.data.isOwner
+        }
+      };
+    } else {
+      return {
+        success: false,
+        message: response.data.message || 'Failed to load design details'
+      };
+    }
+  } catch (error) {
+    console.error('Error fetching cake design details:', error);
+    throw error;
+  }
+};
+
   return (
-    <CakeContext.Provider value={{ cakeState, dispatch, saveCakeDesign, getUserCakeDesigns, loadCakeDesign, token, userId }}>
+    <CakeContext.Provider value={{ 
+      cakeState, 
+      dispatch, 
+      saveCakeDesign, 
+      getUserCakeDesigns, 
+      loadCakeDesign, 
+      deleteCakeDesign,
+      getAllDesigns, 
+      getDesignById, // Add the new function here
+      token, 
+      userId,
+      currentDesignName,
+      setCurrentDesignName
+    }}>
       {children}
     </CakeContext.Provider>
   );
@@ -552,4 +849,138 @@ export const useUsername = () => {
     login,
     logout
   };
+};
+
+// Update the loadCakeDesign function to include detailed logging of element rotations and positions
+const loadCakeDesign = async (designId) => {
+  try {
+    console.log("CakeContext: Fetching design with ID:", designId);
+    
+    if (!token) {
+      throw new Error("Authentication required. Please log in.");
+    }
+    
+    const response = await axios.get(
+      `${API_URL}/userCake/${designId}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+      }
+    );
+    
+    // Log the full response for debugging
+    console.log("CakeContext: Raw API response:", response.data);
+    
+    // Better response handling based on the updated controller
+    if (!response.data.success) {
+      throw new Error(response.data.message || "Failed to load design");
+    }
+    
+    const designData = response.data.data;
+    const isOwner = response.data.isOwner; // New field from the controller
+    
+    // Set the current design name from the loaded design
+    if (designData.name) {
+      setCurrentDesignName(designData.name);
+      console.log("CakeContext: Loaded design name:", designData.name);
+    }
+    
+    console.log("CakeContext: Processed design data:", designData);
+    console.log("CakeContext: User is owner:", isOwner);
+    
+    // Log element rotations and positions from the database
+    console.log("===== ELEMENT ROTATIONS FROM DATABASE =====");
+    if (designData.elements && Array.isArray(designData.elements)) {
+      designData.elements.forEach((element, index) => {
+        console.log(`Element ${index}: ${element.path?.split('/').pop() || 'unknown'}`);
+        console.log(`  - Rotation: [${element.rotation?.[0] || 0}, ${element.rotation?.[1] || 0}, ${element.rotation?.[2] || 0}]`);
+        console.log(`  - Position: [${element.position?.[0] || 0}, ${element.position?.[1] || 0}, ${element.position?.[2] || 0}]`);
+      });
+    }
+    
+    // Return the design data with ownership information
+    return {
+      ...designData,
+      isOwner
+    };
+  } catch (error) {
+    console.error("Error fetching cake design:", error);
+    throw error;
+  }
+};
+
+// Update the loadCakeDesignIntoState function or similar function that handles setting state from loaded designs
+const loadCakeDesignIntoState = (designData) => {
+  // Reset the state with design data
+  dispatch({ type: "RESET" });
+  
+  // Set the cake model
+  if (designData.cakeModel) {
+    dispatch({ type: "SET_CAKE_MODEL", payload: designData.cakeModel });
+  }
+  
+  // Set cake placement
+  if (designData.cakePlacement) {
+    dispatch({ type: "SET_CAKE_PLACEMENT", payload: designData.cakePlacement });
+  }
+  
+  // Add all elements
+  if (designData.elements && Array.isArray(designData.elements)) {
+    designData.elements.forEach(element => {
+      dispatch({ 
+        type: "ADD_ELEMENT", 
+        cakeModelProps: element 
+      });
+    });
+  }
+  
+  // Set message text
+  if (designData.message !== undefined) {
+    dispatch({ type: "SET_MESSAGE", payload: designData.message });
+  }
+  
+  // Set message properties
+  if (designData.messageColor) {
+    dispatch({ type: "SET_MESSAGE_COLOR", payload: designData.messageColor });
+  }
+
+  if (designData.messageFont) {
+    dispatch({ type: "SET_MESSAGE_FONT", payload: designData.messageFont });
+  }
+
+  if (designData.messagePosition && Array.isArray(designData.messagePosition)) {
+    dispatch({ type: "SET_MESSAGE_POSITION", payload: designData.messagePosition });
+  }
+
+  if (designData.messageRotation && Array.isArray(designData.messageRotation)) {
+    // If array is empty, provide default rotation
+    const rotation = designData.messageRotation.length > 0 ? 
+      designData.messageRotation : [-Math.PI/2, 0, 0];
+    dispatch({ type: "SET_MESSAGE_ROTATION", payload: rotation });
+  }
+
+  // Fix for messageScale - handle single value like [0.58]
+  if (designData.messageScale) {
+    let finalScale = [0.15, 0.15, 0.15]; // Default if something goes wrong
+    
+    if (Array.isArray(designData.messageScale)) {
+      if (designData.messageScale.length === 1) {
+        // Expand single value to 3D vector
+        const value = designData.messageScale[0];
+        finalScale = [value, value, value];
+        console.log("Expanding single value messageScale to:", finalScale);
+      } 
+      else if (designData.messageScale.length === 3) {
+        finalScale = designData.messageScale;
+      }
+    } 
+    else if (typeof designData.messageScale === 'number') {
+      // Handle if it's just a number
+      finalScale = [designData.messageScale, designData.messageScale, designData.messageScale];
+    }
+    
+    dispatch({ type: "SET_MESSAGE_SCALE", payload: finalScale });
+    console.log("Setting message scale from loaded design:", finalScale);
+  }
 };

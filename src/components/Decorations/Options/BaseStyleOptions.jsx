@@ -4,34 +4,34 @@ import { useCakeContext } from "../../../context/CakeContext";
 const BaseStyleOptions = () => {
   const { cakeState, dispatch } = useCakeContext();
 
-const styles = [
-  {
-    id: "ROUNDED",
-    name: "Rounded Cake",
-    path: "/tresD-SE/CAKE-B-3layer/CakeA_smooth.glb", // <-- correct path
-    position: [0, 0, 0],
-    color: { primary: "#fff0f5" },
-    targetedMeshName: ["RoundedBase"],
-    textures: new Map(),
-    price: 0.0,
-    description: "Classic rounded edges for a soft, elegant look",
-  },
+  const styles = [
+    {
+      id: "ROUNDED",
+      name: "Rounded Cake",
+      path: "/tresD-SE/CAKE B/CAKE_B_1L_RENAME.glb", // <-- correct path
+      position: [0, 0, 0],
+      color: { primary: "#fff0f5" },
+      targetedMeshName: ["RoundedBase"],
+      textures: new Map(),
+      price: 0.0,
+      description: "Classic rounded edges for a soft, elegant look",
+    },
 
-  {
-    id: "FLAT",
-    name: "Flat Cake",
-    path: "/tresD-SE/CAKE-B-3layer/CAKEC1layer.glb",
-    position: [0, 0, 0],
-    color: { primary: "#fffff" },
-    targetedMeshName: ["FlatBase"],
-    textures: new Map(),
-    price: 0.0,
-    description: "Modern sharp edges for a contemporary style",
-  },
-];
+    {
+      id: "FLAT",
+      name: "Flat Cake",
+      path: "/tresD-SE/CAKE C/CAKE_C_1L_RENAME.glb",
+      position: [0, 0, 0],
+      color: { primary: "#fffff" },
+      targetedMeshName: ["FlatBase"],
+      textures: new Map(),
+      price: 0.0,
+      description: "Modern sharp edges for a contemporary style",
+    },
+  ];
 
   const handleSelectStyle = (styleId) => {
-     const style = styles.find((s) => s.id === styleId);
+    const style = styles.find((s) => s.id === styleId);
     dispatch({
       type: "SET_BASE_STYLE",
       payload: styleId,
@@ -39,12 +39,21 @@ const styles = [
     });
   };
 
+  const model = cakeState.cakeModel
+    ? {
+        // Extract the specific properties you need
+        path: cakeState.cakeModel.path || "",
+        name: cakeState.cakeModel.name || "",
+        position: cakeState.cakeModel.position || [0, 0, 0],
+        color: cakeState.cakeModel.color || "#FFFFFF",
+      }
+    : null;
+
   return (
     <div>
       <h2 className="text-xl font-semibold mb-4">SELECT BASE STYLE</h2>
       {/* Render the 3D cake model here */}
       <div className="flex justify-center mb-6">
-        {cakeState.cakeModel && cakeState.cakeModel.getModel()}
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {styles.map((style) => (
@@ -55,7 +64,7 @@ const styles = [
                 ? "border-2 border-pink-500 bg-pink-50"
                 : "border border-gray-200 hover:border-pink-300 hover:bg-pink-50"
             } rounded-lg p-6 flex flex-col items-center`}
-   onClick={() => handleSelectStyle(style.id)}
+            onClick={() => handleSelectStyle(style.id)}
           >
             <div className="h-32 w-32 bg-gray-100 rounded-lg flex items-center justify-center mb-4">
               <div

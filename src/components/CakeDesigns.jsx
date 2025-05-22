@@ -1,46 +1,50 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { toast } from 'react-toastify';
 import CakeDesignViewer from './CakeDesignViewer';
 import { useCakeContext } from '../context/CakeContext';
+import axios from 'axios';
 
 const CakeDesigns = () => {
-  const { token } = useCakeContext(); // Access token from context if needed for authenticated requests
+  // Get functions from context
+  const { token, getAllDesigns, getDesignById, deleteCakeDesign } = useCakeContext();
   
   const [designs, setDesigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDesign, setSelectedDesign] = useState(null);
   const [designLoading, setDesignLoading] = useState(false);
   
-  // Pagination and filtering state
+  // Pagination state
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [isPublic, setIsPublic] = useState(null); // null means all designs, true/false for filtering
   const [limit, setLimit] = useState(12);
   
+  // Replace isPublic with searchQuery
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+  
   // Fetch cake designs
-  const fetchDesigns = async (pageNum = page, filterPublic = isPublic) => {
+  const fetchDesigns = async (pageNum = page, query = debouncedSearchQuery) => {
     setLoading(true);
     try {
-      // Build query parameters
-      let queryParams = `?page=${pageNum}&limit=${limit}&sort=-createdAt`;
-      if (filterPublic !== null) {
-        queryParams += `&isPublic=${filterPublic}`;
-      }
+      // Use getAllDesigns from context
+      const result = await getAllDesigns({
+        page: pageNum,
+        limit: limit,
+        sort: '-createdAt',
+        search: query || undefined  // Add search query parameter
+      });
       
-      const response = await axios.get(`http://localhost:8080/api/getall${queryParams}`);
-      
-      if (response.data.success) {
-        console.log("Designs data:", response.data.data);
-        setDesigns(response.data.data); // Use data field from response
-        setTotalPages(response.data.pages);
-        toast.success('Designs loaded successfully');
+      if (result.success) {
+        console.log("Designs data:", result.designs);
+        setDesigns(result.designs);
+        setTotalPages(result.pages);
+        console.log('Designs loaded successfully');
       } else {
-        toast.error('Failed to load designs');
+       console.log('Failed to load designs');
       }
     } catch (error) {
       console.error('Error fetching cake designs:', error);
-      toast.error(error.response?.data?.message || error.message);
+      console.log(error.message);
     } finally {
       setLoading(false);
     }
@@ -51,39 +55,56 @@ const CakeDesigns = () => {
     try {
       setDesignLoading(true);
       
-      const response = await axios.get(`http://localhost:8080/api/userCake/${designId}`);
+      const result = await getDesignById(designId);
       
-      if (response.data.success) {
-        // Set the fetched design as the selected design to show in modal
-        setSelectedDesign(response.data.data);
+      if (result.success) {
+        console.log("Design details:", result.design);
+        setSelectedDesign(result.design);
       } else {
-        toast.error('Failed to load design details');
+       console.log(result.message || 'Failed to load design details');
       }
     } catch (error) {
       console.error('Error fetching cake design details:', error);
-      toast.error(error.response?.data?.message || error.message);
+     console.log(error.response?.data?.message || error.message);
     } finally {
       setDesignLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchDesigns();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Handle search input with debounce
+  const handleSearchChange = (e) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+    
+    // Clear any existing timeout
+    if (window.searchTimeout) {
+      clearTimeout(window.searchTimeout);
+    }
+    
+    // Set a timeout to update the debounced value
+    window.searchTimeout = setTimeout(() => {
+      setDebouncedSearchQuery(value);
+      setPage(1); // Reset to first page when searching
+      fetchDesigns(1, value);
+    }, 500);
+  };
 
   // Handle page change
   const handlePageChange = (newPage) => {
     setPage(newPage);
-    fetchDesigns(newPage, isPublic);
+    fetchDesigns(newPage, debouncedSearchQuery);
   };
-  
-  // Handle public/private filter change
-  const handleVisibilityFilter = (visibility) => {
-    setIsPublic(visibility);
-    setPage(1); // Reset to first page
-    fetchDesigns(1, visibility);
-  };
+
+  useEffect(() => {
+    fetchDesigns();
+    // Clean up timeout on component unmount
+    return () => {
+      if (window.searchTimeout) {
+        clearTimeout(window.searchTimeout);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Get color from string or object
   const getColorDisplay = (color) => {
@@ -127,21 +148,39 @@ const CakeDesigns = () => {
         <h2 className="text-2xl font-bold text-gray-900">Customer Cake Designs</h2>
         
         <div className="mt-3 sm:mt-0 sm:ml-4 flex flex-col sm:flex-row gap-3">
-          <select 
-            value={isPublic === null ? 'all' : isPublic ? 'public' : 'private'}
-            onChange={(e) => {
-              const value = e.target.value;
-              handleVisibilityFilter(value === 'all' ? null : value === 'public');
-            }}
-            className="block w-full sm:w-auto rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-pink-500 focus:outline-none focus:ring-pink-500 sm:text-sm"
-          >
-            <option value="all">All Designs</option>
-            <option value="public">Public Designs</option>
-            <option value="private">Private Designs</option>
-          </select>
+          {/* Replace dropdown with search input */}
+          <div className="relative">
+            <input 
+              type="text"
+              placeholder="Search designs..."
+              value={searchQuery}
+              onChange={handleSearchChange}
+              className="block w-full sm:w-64 rounded-md border-gray-300 pl-10 py-2 pr-3 text-sm focus:border-pink-500 focus:outline-none focus:ring-pink-500"
+            />
+            <div className="pointer-events-none absolute inset-y-0 left-0 pl-3 flex items-center">
+              <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+              </svg>
+            </div>
+            {searchQuery && (
+              <button
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                onClick={() => {
+                  setSearchQuery('');
+                  setDebouncedSearchQuery('');
+                  setPage(1);
+                  fetchDesigns(1, '');
+                }}
+              >
+                <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </button>
+            )}
+          </div>
           
           <button 
-            onClick={() => fetchDesigns()}
+            onClick={() => fetchDesigns(page, debouncedSearchQuery)}
             className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-pink-600 hover:bg-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500"
           >
             <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -151,6 +190,24 @@ const CakeDesigns = () => {
           </button>
         </div>
       </div>
+      
+      {/* Show search results count if there's a search */}
+      {debouncedSearchQuery && (
+        <div className="flex items-center mb-4 text-sm text-gray-500">
+          <span>Found {designs.length} results for "{debouncedSearchQuery}"</span>
+          <button 
+            className="ml-2 text-pink-600 hover:text-pink-800 font-medium"
+            onClick={() => {
+              setSearchQuery('');
+              setDebouncedSearchQuery('');
+              setPage(1);
+              fetchDesigns(1, '');
+            }}
+          >
+            Clear search
+          </button>
+        </div>
+      )}
       
       {loading ? (
         <div className="flex justify-center items-center h-64">
@@ -315,7 +372,9 @@ const CakeDesigns = () => {
                       <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Left column - Cake visualization or preview image */}
                         <div className="bg-gray-100 rounded-lg h-64 md:h-96 flex items-center justify-center overflow-hidden">
-                          {selectedDesign.previewImage ? (
+                          {selectedDesign.cakeModel?.path ? (
+                            <CakeDesignViewer design={selectedDesign} height="100%" />
+                          ) : selectedDesign.previewImage ? (
                             <img 
                               src={selectedDesign.previewImage} 
                               alt={`${selectedDesign.name} preview`}
@@ -323,21 +382,12 @@ const CakeDesigns = () => {
                               onError={(e) => {
                                 console.error("Preview image failed to load");
                                 e.target.style.display = 'none';
-                                // Fall back to 3D viewer if available
-                                if (selectedDesign.cakeModel?.path) {
-                                  e.target.parentNode.classList.add('use-3d-viewer');
-                                }
                               }}
                             />
-                          ) : selectedDesign.cakeModel?.path ? (
-                            <CakeDesignViewer design={selectedDesign} height="100%" />
                           ) : (
+                            // Fallback content when neither is available
                             <div className="rounded-lg p-6 bg-pink-100 text-pink-600 flex flex-col items-center justify-center">
-                              <svg className="h-16 w-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M21 15.546c-.523 0-1.046.151-1.5.454a2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.701 2.701 0 00-1.5-.454M9 6v2m3-2v2m3-2v2M9 3h.01M12 3h.01M15 3h.01M21 21v-7a2 2 0 00-2-2H5a2 2 0 00-2 2v7h18zm-3-9v-2a2 2 0 00-2-2H8a2 2 0 00-2 2v2h12z" />
-                              </svg>
-                              <p className="mt-4 text-sm">No preview available</p>
-                              <p className="mt-2 text-xs">No preview image or 3D model</p>
+                              {/* Your fallback content */}
                             </div>
                           )}
                           
@@ -473,9 +523,46 @@ const CakeDesigns = () => {
               )}
               
               <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                {/* Only show Edit button if user is the owner */}
+                {selectedDesign.isOwner && (
+                  <button 
+                    type="button" 
+                    className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm"
+                    onClick={() => {
+                      // Navigate to cake designer with this design
+                      window.location.href = `/cake-designer?designId=${selectedDesign._id}`;
+                    }}
+                  >
+                    <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
+                    Edit Design
+                  </button>
+                )}
+                
+                {/* Delete button - only for owners */}
+                {selectedDesign.isOwner && (
+                  <button 
+                    type="button"
+                    className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-red-50 text-base font-medium text-red-700 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                    onClick={() => {
+                      // Show confirmation before deleting
+                      if (window.confirm('Are you sure you want to delete this design? This action cannot be undone.')) {
+                        // Call delete function (you'll need to implement this)
+                        handleDeleteDesign(selectedDesign._id);
+                      }
+                    }}
+                  >
+                    <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Delete
+                  </button>
+                )}
+                
                 <button 
                   type="button" 
-                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-pink-600 text-base font-medium text-white hover:bg-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 sm:ml-3 sm:w-auto sm:text-sm"
+                  className={`mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 sm:mt-0 ${selectedDesign.isOwner ? 'sm:ml-3' : 'sm:ml-0'} sm:w-auto sm:text-sm`}
                   onClick={() => setSelectedDesign(null)}
                 >
                   Close

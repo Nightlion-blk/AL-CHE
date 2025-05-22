@@ -12,7 +12,7 @@ const TabNav = ({ activeTab, setActiveTab }) => {
     "FLAVOURS",
     "COLOR",
     "ELEMENTS",
-    "TOPPER",
+    "FROSTING",
     "MESSAGE"
   ];
 

@@ -16,7 +16,9 @@ const Product = ({ isOpen, onClose, productId }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
-  // Close modal when clicking outside
+  // ⚠️ IMPORTANT: All useEffect hooks must be declared here, in the same order every time
+  
+  // 1. First, your existing click outside handler
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (modalRef.current && !modalRef.current.contains(event.target)) {
@@ -33,7 +35,7 @@ const Product = ({ isOpen, onClose, productId }) => {
     };
   }, [isOpen, onClose]);
   
-  // Fetch product data when modal opens
+  // 2. Your existing product data fetch effect
   useEffect(() => {
     if (isOpen && productId) {
       fetchProductData();
@@ -46,6 +48,44 @@ const Product = ({ isOpen, onClose, productId }) => {
     };
   }, [isOpen, productId]);
   
+  // 3. Add the cart sync effect HERE, not later in the component
+useEffect(() => {
+  // Only fetch when necessary
+  if (isOpen && token && productData) {
+    // Add a small random delay to prevent exact simultaneous calls
+    const delay = Math.random() * 400;
+    
+    const fetchTimeout = setTimeout(() => {
+      // Use a flag in localStorage to prevent multiple components
+      // from calling getUserCart at the same time
+      const lastFetchTime = localStorage.getItem('lastCartFetch');
+      const now = Date.now();
+      
+      if (!lastFetchTime || now - parseInt(lastFetchTime) > 2000) {
+        // Set the flag before calling
+        localStorage.setItem('lastCartFetch', now.toString());
+        
+        // Now call getUserCart
+        getUserCart()
+          .then(cartItems => {
+            if (Array.isArray(cartItems) && productData) {
+              const existingItem = cartItems.find(item => 
+                item.productId === productData.id && item.itemType === 'product'
+              );
+              
+              if (existingItem && existingItem.quantity !== quantity) {
+                console.log(`Syncing quantity for ${productData.name}`);
+                addToCart(productData.id, 'product', quantity, true);
+              }
+            }
+          })
+          .catch(err => console.log('Cart sync error:', err.message));
+      }
+    }, delay);
+    
+    return () => clearTimeout(fetchTimeout);
+  }
+}, [isOpen, token, productData, quantity]);
   // Prevent scrolling when modal is open
   useEffect(() => {
     if (isOpen) {
@@ -79,12 +119,12 @@ const Product = ({ isOpen, onClose, productId }) => {
           setProductData(formattedProduct);
           setSelectedImageIndex(0);
         } else {
-          toast.error('Product not found');
+         console.log('Product not found');
         }
       }
     } catch (error) {
       console.error('Error fetching product:', error);
-      toast.error('Failed to load product details');
+      console.log('Failed to load product details');
     } finally {
       setLoading(false);
     }
@@ -105,30 +145,24 @@ const Product = ({ isOpen, onClose, productId }) => {
       }
 
       // Show loading toast
-      toast.info('Adding to cart...', { autoClose: false, toastId: 'adding-to-cart' });
+      console.log('Adding to cart...', { autoClose: false, toastId: 'adding-to-cart' });
       
-      // First add all items to cart and wait for completion
-      const addPromises = [];
-      for (let i = 0; i < quantity; i++) {
-        // Add 'product' as the second parameter - this is the critical fix
-        addPromises.push(addToCart(productData.id, 'product'));
-      }
-      await Promise.all(addPromises);
+      // Pass quantity directly instead of using a loop
+      await addToCart(productData.id, 'product', quantity);
       
-      // Just update the cart count - avoid getUserCart which causes items to disappear
+      await getUserCart(token);
+      // Update cart count
       await getCartCount();
-      // Don't call getUserCart here as it can cause race conditions
-      // await getUserCart(token);
       
       // Update toast to success
       toast.dismiss('adding-to-cart');
-      toast.success('Product added to cart successfully!');
+     console.log(`${quantity} ${quantity > 1 ? 'items' : 'item'} added to cart`);
       
       setQuantity(1);
       onClose(); // Close modal after adding to cart
     } catch (error) {
       console.error('Error adding to cart:', error);
-      toast.error('Failed to add product to cart');
+     console.log('Failed to add product to cart');
     }
   };
   // Get the current main image URL to display
@@ -231,7 +265,7 @@ const Product = ({ isOpen, onClose, productId }) => {
                   <button
                     onClick={() => {
                       if (!token) {
-                        toast.error('Please login to add items to cart');
+                        console.log('Please login to add items to cart');
                       } else {
                         handleAddToCart();
                       }

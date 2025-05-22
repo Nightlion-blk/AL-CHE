@@ -1,12 +1,14 @@
-import React, { useRef, useState, useEffect, useMemo } from 'react';
+import React, { useRef, useState, useEffect, useMemo, useCallback } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
-import { Environment, OrbitControls, useGLTF, TransformControls } from '@react-three/drei';
+import { Environment, OrbitControls, useGLTF, TransformControls, Sphere } from '@react-three/drei';
 import { useCakeContext } from "../../context/CakeContext";
 import * as THREE from 'three';
 import { Undo2, Redo2, RotateCcw, Radius, Copy, ClipboardPaste } from "lucide-react";
 import TextElement from './TextElement';
 import SaveButton from './SaveButton';
 import CanvasScreenshot from './CanvasScreenshot';
+import { toast } from 'react-toastify';
+import FrostingDrawer from './FrostingDrawer';
 
 // Create ElementRenderer with forwardRef to properly handle refs
 const ElementRenderer = React.forwardRef(({ element, index, selected, onSelect }, ref) => {
@@ -93,17 +95,35 @@ const ElementRenderer = React.forwardRef(({ element, index, selected, onSelect }
     if (scene) {
       scene.traverse((child) => {
         if (child.isMesh) {
-          // These settings are crucial for click detection
-          child.material.transparent = false; // Ensure material isn't transparent
-          child.layers.enable(0);  // Enable default layer
-          child.raycast = child.raycast || THREE.Mesh.prototype.raycast; // Ensure raycast method exists
-          child.material.depthWrite = true; // Enable depth writing
-          child.material.depthTest = true; // Enable depth testing
-          child.userData.clickable = true; // Mark as clickable
+          // Check if this is a flower element based on ID
+          const isFlower = 
+            element.id?.includes('rose') || 
+            element.id?.includes('sunflower') || 
+            element.id?.includes('orchid') ||
+            element.id?.includes('flower');
+          
+          if (isFlower) {
+            // For flowers, use alphaTest instead of disabling transparency
+            if (child.material) {
+              // Keep transparency but make clickable
+              child.material.alphaTest = 0.2;
+              child.material.needsUpdate = true;
+            }
+          } else {
+            // For non-flowers, use the original approach
+            child.material.transparent = false;
+          }
+          
+          // Common settings for all meshes
+          child.layers.enable(0);
+          child.raycast = child.raycast || THREE.Mesh.prototype.raycast;
+          child.material.depthWrite = true;
+          child.material.depthTest = true;
+          child.userData.clickable = true;
         }
       });
     }
-  }, [scene]);
+  }, [scene, element.id]);
   
   // Apply color and textures
   React.useLayoutEffect(() => {
@@ -145,19 +165,45 @@ const ElementRenderer = React.forwardRef(({ element, index, selected, onSelect }
     }
   }, [scene, element, selected]); // Added selected as a dependency
   
+  // In the ElementRenderer component
+  React.useEffect(() => {
+  // Ensure the 3D object matches the stored rotation values when element changes
+  if (groupRef.current && element.rotation) {
+    groupRef.current.rotation.set(
+      element.rotation[0],
+      element.rotation[1],
+      element.rotation[2]
+    );
+    console.log(`Element ${element.id} rotation set to:`, element.rotation);
+  }
+}, [element, element.rotation]);
+  
   return (
     <group 
       ref={groupRef} 
       position={position}
+      rotation={element.rotation ? [element.rotation[0], element.rotation[1], element.rotation[2]] : [0, 0, 0]}
     >
       {clonedScene && <primitive object={clonedScene} scale={scale} />}
-      
       {/* Dynamic hitbox */}
       <mesh 
-          position={hitboxCenter} // Use the calculated center instead of [0, 0, 0]
+          position={hitboxCenter}
           onClick={(e) => {
-            console.log("Hitbox clicked for element", index);
+            console.log(`Hitbox clicked for element ${index} (${element.id})`);
             e.stopPropagation();
+            
+            // For flowers, ensure the click is properly captured
+            const isFlower = 
+              element.id?.includes('rose') || 
+              element.id?.includes('sunflower') || 
+              element.id?.includes('orchid') ||
+              element.id?.includes('flower');
+              
+            if (isFlower) {
+              // Ensure click is fully captured
+              e.nativeEvent.stopImmediatePropagation();
+            }
+            
             onSelect(index, e);
             e.nativeEvent.stopPropagation();
             e.nativeEvent.preventDefault();
@@ -230,40 +276,75 @@ const TextControls = ({ text, transformMode = 'translate', onPositionChange }) =
 };
 
 // Controls for the selected element
-const ElementControls = ({ selectedElement, transformMode, onPositionChange }) => {
+const ElementControls = ({ selectedElement, transformMode, onPositionChange, onRotationChange, selectedElementIndices, dispatch }) => {
   const { scene } = useThree();
   const transformRef = useRef();
   
-  // Disable orbit controls while transform controls are being used
+  // Add tracking for both position and rotation changes
   React.useEffect(() => {
     const controls = transformRef.current;
     
     if (!controls || !selectedElement) return;
     
-    const callback = (event) => {
-      const orbitControls = scene.userData.orbitControls;
-      if (orbitControls) {
-        orbitControls.enabled = !event.value;
-      }
+    // Track changes while dragging/rotating
+    const handleObjectChange = (event) => {
+      const object = event.target.object;
       
-      // If dragging ended, update the position in state
-      if (!event.value && onPositionChange && selectedElement) {
-        const newPosition = selectedElement.position.toArray();
-        onPositionChange(newPosition);
+      if (selectedElementIndices && selectedElementIndices.length === 1) {
+        if (transformMode === 'rotate') {
+          // Get rotation values and ensure they're numbers
+          const newRotation = [
+            typeof object.rotation.x === 'number' ? object.rotation.x : 0,
+            typeof object.rotation.y === 'number' ? object.rotation.y : 0,
+            typeof object.rotation.z === 'number' ? object.rotation.z : 0
+          ];
+          
+          console.log("New rotation:", newRotation.map(val => 
+            // Add type checking before using toFixed
+            typeof val === 'number' ? val.toFixed(2) : String(val)
+          ));
+          
+          // Dispatch with validated numeric values
+          dispatch({
+            type: "UPDATE_ELEMENT_ROTATION",
+            index: selectedElementIndices[0],
+            rotation: newRotation
+          });
+        } 
+        else if (transformMode === 'translate') {
+          // Same approach for positions
+          const newPosition = [
+            typeof object.position.x === 'number' ? object.position.x : 0,
+            typeof object.position.y === 'number' ? object.position.y : 0, 
+            typeof object.position.z === 'number' ? object.position.z : 0
+          ];
+          
+          dispatch({
+            type: "UPDATE_ELEMENT_POSITION",
+            index: selectedElementIndices[0],
+            position: newPosition
+          });
+        }
       }
     };
     
-    controls.addEventListener('dragging-changed', callback);
-    return () => controls.removeEventListener('dragging-changed', callback);
-  }, [scene, selectedElement, onPositionChange]);
-  
-  if (!selectedElement) return null;
+    // Actually attach the handler to the controls
+    controls.addEventListener('objectChange', handleObjectChange);
+    
+    // Clean up event listener when component unmounts or dependencies change
+    return () => {
+      if (controls) {
+        controls.removeEventListener('objectChange', handleObjectChange);
+      }
+    };
+  }, [selectedElement, transformMode, selectedElementIndices, dispatch]); // Include all dependencies
   
   return (
     <TransformControls
       ref={transformRef}
       object={selectedElement}
       mode={transformMode}
+      size={0.75}
     />
   );
 };
@@ -275,8 +356,18 @@ const CakeRenderer = ({ cakeModel }) => {
   // 👇 FIX: Add cakeState to the destructured values from context
   const { dispatch, cakeState } = useCakeContext();
   
+  // 👇 ADD THIS LINE - create the missing meshRef
+  const meshRef = useRef(null);
+  
   const { scene } = useGLTF(cakeModel.path);
   const position = cakeModel.position || [0, 0, 0];
+  
+  // Add this effect to store the scene in the meshRef
+  React.useEffect(() => {
+    if (scene) {
+      meshRef.current = scene;
+    }
+  }, [scene]);
   
   React.useEffect(() => {
     if (scene) {
@@ -327,9 +418,9 @@ const CakeRenderer = ({ cakeModel }) => {
             child.material.color.set("#F9F5E7"); // Default vanilla color
           }
           
-          // Apply batter textures if available
-          if (cakeModel.textureMap && cakeModel.textureMap.has("batter")) {
-            const texture = cakeModel.textureMap.get("batter");
+          // Apply batter textures if available - FIXED
+          if (cakeModel.textureMap && cakeModel.textureMap.batter) {
+            const texture = cakeModel.textureMap.batter;
             if (texture) {
               const textureLoader = new THREE.TextureLoader();
               const loadedTexture = textureLoader.load(texture);
@@ -359,9 +450,9 @@ const CakeRenderer = ({ cakeModel }) => {
             child.material.color.set("#E8D7B4"); // Default vanilla cream color
           }
           
-          // Apply cream textures if available
-          if (cakeModel.textureMap && cakeModel.textureMap.has("cream")) {
-            const texture = cakeModel.textureMap.get("cream");
+          // Apply cream textures if available - FIXED
+          if (cakeModel.textureMap && cakeModel.textureMap.cream) {
+            const texture = cakeModel.textureMap.cream;
             if (texture) {
               const textureLoader = new THREE.TextureLoader();
               const loadedTexture = textureLoader.load(texture);
@@ -383,9 +474,9 @@ const CakeRenderer = ({ cakeModel }) => {
               child.material.color.set(cakeModel.color.primary);
             }
             
-            // Apply textures if available
-            if (cakeModel.textureMap && cakeModel.textureMap.has(child.name)) {
-              const texture = cakeModel.textureMap.get(child.name);
+            // Apply textures if available - FIXED
+            if (cakeModel.textureMap && cakeModel.textureMap[child.name]) {
+              const texture = cakeModel.textureMap[child.name];
               if (texture) {
                 const textureLoader = new THREE.TextureLoader();
                 const loadedTexture = textureLoader.load(texture);
@@ -401,15 +492,33 @@ const CakeRenderer = ({ cakeModel }) => {
     });
   }
 }, [scene, cakeModel, cakeState.flavour]); // Added cakeState.flavour as a dependency
-  
-  return <primitive object={scene} position={position} />;
+  useEffect(() => {
+  // Update material colors when cakeModel.color changes
+  if (meshRef.current && cakeModel.color) {
+    const material = meshRef.current.material;
+    
+    // Check if material is an array (for multiple materials)
+    if (Array.isArray(material)) {
+      material.forEach(mat => {
+        if (mat.color) {
+          mat.color.set(cakeModel.color);
+        }
+      });
+    } else if (material && material.color) {
+      material.color.set(cakeModel.color);
+    }
+  }
+}, [cakeModel.color]);
+
+  // Update the return to use the meshRef
+  return <primitive ref={meshRef} object={scene} position={position} />;
 };
 
-const DecorationCanvas = React.forwardRef((props, ref) => {
+const DecorationCanvas = React.forwardRef(({ frostingActive, frostingColor, frostingSize }, ref) => {
   // Create ref for orbit controls
   const orbitControlsRef = useRef(null);
   const decorationCanvasRef = useRef(null);
-  const { cakeState, dispatch,  loadCakeDesign} = useCakeContext();
+  const { cakeState, dispatch, loadCakeDesign } = useCakeContext();
    const [loadingDesign, setLoadingDesign] = useState(false);
   const [selectedElementIndices, setSelectedElementIndices] = useState([]);
   const [isTextSelected, setIsTextSelected] = useState(false);
@@ -421,6 +530,11 @@ const DecorationCanvas = React.forwardRef((props, ref) => {
   const [copiedElement, setCopiedElement] = useState(null);
   const [pasteOffset, setPasteOffset] = useState(0); // To offset pasted elements
   const [canvasImageUrl, setCanvasImageUrl] = useState(null);
+  
+  // Replace your existing states with these enhanced ones
+const [copiedElements, setCopiedElements] = useState([]);
+const [clipboardType, setClipboardType] = useState(null); // 'elements', 'text', or null
+const [clipboardTimestamp, setClipboardTimestamp] = useState(null);
   
   const canUndo = cakeState.currentIndex > 0;
   const canRedo = cakeState.currentIndex < cakeState.history.length - 1;
@@ -441,7 +555,12 @@ const DecorationCanvas = React.forwardRef((props, ref) => {
     console.log('Design saved:', savedData);
     // Optional: Add notification or feedback logic here
   };
-  
+  useEffect(() => {
+  // Force cleanup of any cached Three.js objects whenever elements change
+  return () => {
+    useGLTF.clear(); // Clear the model cache
+  };
+}, [cakeState.elements]);
   // Create refs when elements change
   useEffect(() => {
     // Create new refs array when elements length changes
@@ -465,9 +584,148 @@ const DecorationCanvas = React.forwardRef((props, ref) => {
   console.log("Cake state updated:", cakeState);
 }, [cakeState]);
 
- React.useImperativeHandle(ref, () => ({
-    loadDesign: handleLoadDesign
-  }));
+ // Add the handleLoadDesign function
+const handleLoadDesign = async (designId) => {
+  if (!designId) {
+    console.error("No design ID provided for loading");
+    return;
+  }
+  
+  try {
+    setLoadingDesign(true);
+    console.log("Loading design with ID:", designId);
+    
+    // Call the loadCakeDesign function from your context
+    await loadCakeDesign(designId);
+    
+    // Deselect any elements after loading a design
+    setSelectedElementIndices([]);
+    setIsTextSelected(false);
+    
+    console.log("Design loaded successfully");
+  } catch (error) {
+    console.error("Error loading design:", error);
+    // You might want to add an error toast here
+    if (toast) {
+     console.log("Failed to load design. Please try again.");
+    }
+  } finally {
+    setLoadingDesign(false);
+  }
+};
+
+  React.useImperativeHandle(ref, () => ({
+    loadDesign: async (designId) => {
+    try {
+      console.log("DecorationCanvas: Starting to load design:", designId);
+      setLoadingDesign(true);
+      
+      // Fetch design data
+      const designData = await loadCakeDesign(designId);
+      console.log("DecorationCanvas: Design data received:", designData);
+      
+      // First, reset the current state to avoid conflicts
+      dispatch({ type: "RESET" });
+      
+      // Apply flavour first if it exists
+      if (designData.flavour) {
+        console.log("DecorationCanvas: Setting flavour data:", designData.flavour);
+        dispatch({
+          type: "SET_FLAVOUR",
+          payload: designData.flavour
+        });
+      }
+      
+      // Apply cake model
+      if (designData.cakeModel) {
+        console.log("DecorationCanvas: Applying cake model:", designData.cakeModel);
+        
+        // Make a deep copy to avoid reference issues
+        const modelCopy = JSON.parse(JSON.stringify(designData.cakeModel));
+        
+        // Make sure color has proper format
+        if (!modelCopy.color) modelCopy.color = {};
+        if (typeof modelCopy.color === 'string') {
+          modelCopy.color = {
+            primary: modelCopy.color,
+            batter: modelCopy.color
+          };
+        }
+        
+        // Apply the cake model
+        dispatch({ 
+          type: "SET_CAKE_MODEL", 
+          payload: modelCopy 
+        });
+      }
+      
+      // Apply elements if they exist
+      if (Array.isArray(designData.elements)) {
+        console.log("DecorationCanvas: Applying elements:", designData.elements);
+        
+        // Map elements to ensure they have required properties
+        const mappedElements = designData.elements.map(element => {
+          if (!element.path) {
+            console.warn("Element missing path:", element);
+            return null;
+          }
+          return element;
+        }).filter(Boolean); // Remove null elements
+        
+        dispatch({ type: "SET_ELEMENTS", payload: mappedElements });
+      }
+      
+      // Apply message if it exists
+      if (designData.message !== undefined) {
+        console.log("DecorationCanvas: Applying message:", designData.message);
+        dispatch({ type: "SET_MESSAGE", payload: designData.message });
+      }
+      
+      // Apply message color if it exists
+      if (designData.messageColor) {
+        dispatch({ type: "SET_MESSAGE_COLOR", payload: designData.messageColor });
+      }
+      
+      // Apply message position if it exists
+      if (designData.messagePosition) {
+        dispatch({ type: "SET_MESSAGE_POSITION", payload: designData.messagePosition });
+      }
+
+      if (designData.messageScale) {
+  let finalScale = [0.15, 0.15, 0.15]; // Default scale
+  
+  if (Array.isArray(designData.messageScale)) {
+    if (designData.messageScale.length === 1) {
+      // Expand single value to 3D vector
+      const value = designData.messageScale[0];
+      finalScale = [value, value, value];
+      console.log("DecorationCanvas: Expanding single value messageScale to:", finalScale);
+    } 
+    else if (designData.messageScale.length === 3) {
+      finalScale = designData.messageScale;
+    }
+  } 
+  else if (typeof designData.messageScale === 'number') {
+    // Handle if it's just a number
+    finalScale = [designData.messageScale, designData.messageScale, designData.messageScale];
+  }
+  
+  dispatch({ type: "SET_MESSAGE_SCALE", payload: finalScale });
+  console.log("DecorationCanvas: Setting message scale from loaded design:", finalScale);
+}
+      
+      console.log("DecorationCanvas: Design loaded successfully");
+      console.log("Design loaded successfully");
+      return designData;
+    } catch (error) {
+      console.error("Error loading design in DecorationCanvas:", error);
+     console.log("Failed to load design: " + (error.message || "Unknown error"));
+      throw error;
+    } finally {
+      setLoadingDesign(false);
+    }
+  }
+}));
 
   const handlePositionChange = (newPosition) => {
     if (selectedElementIndices.length === 1) {
@@ -479,6 +737,17 @@ const DecorationCanvas = React.forwardRef((props, ref) => {
     }
   };
   
+  const handleRotationChange = (newRotation) => {
+  if (selectedElementIndices.length === 1) {
+    console.log("Updating rotation to:", newRotation); // Add this debug line
+    dispatch({
+      type: "UPDATE_ELEMENT_ROTATION",
+      index: selectedElementIndices[0],
+      rotation: newRotation
+    });
+  }
+};
+
   const isSelected = (index) => selectedElementIndices.includes(index);
   
   const handleElementSelect = (index, e) => {
@@ -564,78 +833,235 @@ const DecorationCanvas = React.forwardRef((props, ref) => {
     console.log("isTextSelected:", isTextSelected);
   }, [textRef.current, isTextSelected]);
 
-  const handleCopyElement = () => {
-    if (selectedElementIndices.length === 1) {
-      const elementToCopy = cakeState.elements[selectedElementIndices[0]];
-      const elementCopy = JSON.parse(JSON.stringify(elementToCopy)); // Deep clone
-      
-      // Store the copied element
-      setCopiedElement(elementCopy);
-      console.log("Element copied:", elementCopy);
-    }
-  };
+  // Update your handleCopyElement function to better capture scale
 
-  const handlePasteElement = () => {
-    if (!copiedElement) return;
-    
-    // Create a new element based on the copied one
-    const newElement = {
-      ...copiedElement,
-      uniqueId: Date.now().toString(), // Ensure unique ID
-      position: [
-        copiedElement.position[0] + 0.5 + (pasteOffset * 0.25),
-        copiedElement.position[1] + 0.5 + (pasteOffset * 0.25),
-        copiedElement.position[2]
-      ]
+const handleCopyElement = () => {
+  // Handle copying elements
+  if (selectedElementIndices.length > 0) {
+    try {
+      const elementsToCopy = selectedElementIndices.map(index => {
+        // Get the element from state
+        const element = cakeState.elements[index];
+        
+        // Skip invalid elements
+        if (!element) {
+          console.warn("Attempted to copy undefined element at index", index);
+          return null;
+        }
+        
+        // For 3D objects, get the current transform from the ref
+        let currentTransform = {};
+        
+        if (elementRefs.current[index] && elementRefs.current[index].current) {
+          const ref = elementRefs.current[index].current;
+          
+          // Get live transform values from the Three.js object
+          currentTransform = {
+            position: ref.position.toArray(),
+            rotation: ref.rotation.toArray(),
+            scale: ref.scale.toArray()
+          };
+          
+          console.log(`Copying element ${element.name || element.id} with scale:`, currentTransform.scale);
+        } else {
+          console.warn(`Element ref not available for index ${index}, using stored values`);
+        }
+        
+        // Create a complete copy with all transform properties
+        const elementCopy = {
+          // Basic properties
+          id: element.id,
+          name: element.name,
+          price: element.price,
+          path: element.path || "",
+          uniqueId: `copy_${Date.now()}_${index}`,
+          
+          // Transform properties - prioritize live values
+          position: currentTransform.position || element.position || [0, 0, 0],
+          rotation: currentTransform.rotation || element.rotation || [0, 0, 0],
+          scale: currentTransform.scale || element.scale || [1, 1, 1],
+          
+          // Other properties to preserve
+          targetedMeshName: element.targetedMeshName || element.id,
+          color: element.color || "#FFFFFF"
+        };
+        
+        return elementCopy;
+      }).filter(Boolean); // Remove any null elements
+      
+      // Store the copied elements
+      setCopiedElements(elementsToCopy);
+      setClipboardType('elements');
+      setClipboardTimestamp(Date.now());
+      
+      // Visual feedback
+      console.log(
+        `${elementsToCopy.length > 1 
+          ? `${elementsToCopy.length} elements` 
+          : 'Element'} copied with transformations`
+      );
+      
+      console.log("Elements copied:", elementsToCopy);
+    } catch (error) {
+      console.error("Error during copy operation:", error);
+     console.log("Failed to copy elements");
+    }
+    return;
+  }
+  
+  // Handle copying text if selected
+  if (isTextSelected && textRef.current && cakeState.message) {
+    const textToCopy = {
+      message: cakeState.message,
+      color: cakeState.messageColor || "#000000",
+      font: cakeState.messageFont || "script",
+      position: textRef.current.position ? [...textRef.current.position.toArray()] : [0, 1, 0],
+      rotation: textRef.current.rotation ? [...textRef.current.rotation.toArray()] : [0, 0, 0]
     };
     
-    // Increment offset for future pastes
-    setPasteOffset(pasteOffset + 1);
+    setCopiedElements([textToCopy]);
+    setClipboardType('text');
+    setClipboardTimestamp(Date.now());
     
-    // Add the new element to the cake state
-    dispatch({
-      type: "ADD_ELEMENT",
-      payload: newElement
+    // Visual feedback
+    console.log("Text copied");
+    console.log("Text copied:", textToCopy);
+    
+    return;
+  }
+  
+  // Nothing selected
+  console.log("Select an element or text to copy");
+};
+
+// Update your handlePasteElement function to preserve scale exactly
+
+const handlePasteElement = () => {
+  if (!clipboardType || copiedElements.length === 0) {
+    console.log("Nothing to paste");
+    return;
+  }
+  
+  // Handle pasting elements
+  if (clipboardType === 'elements') {
+    // Calculate paste position offset
+    const baseOffset = 0.1
+    const newElementIndices = [];
+    
+    // Track the current element count to calculate new indices
+    const currentElementCount = cakeState.elements.length;
+    
+    copiedElements.forEach((element, i) => {
+      // Always use the EXACT same scale as the copied element
+      // Don't do any validation that might reset to default
+      console.log("Scala: ", element.scale  )
+    const exactScale = [
+  element.scale[0] - 0.5,
+  element.scale[1] - 0.5, 
+  element.scale[2] - 0.5
+];
+      
+      // Create a new element with unique ID and offset position
+      const newElement = {
+        ...element,
+        uniqueId: `paste_${Date.now()}_${i}`, // Ensure unique ID
+        
+        // Offset the position, but keep exact rotation and scale
+        position: [
+          element.position[0] + baseOffset,
+          element.position[1],
+          element.position[2] + baseOffset
+        ],
+        // Use the EXACT scale from the copied element
+        scale: exactScale,
+        // Ensure rotation is properly preserved
+        rotation: element.rotation ? [...element.rotation] : [0, 0, 0]
+      };
+      
+      console.log(`Pasting element with exact scale:`, exactScale);
+      console.log(`Pasting element with rotation:`, newElement.rotation);
+      
+      // Dispatch with cakeModelProps structure
+      dispatch({
+        type: "ADD_ELEMENT",
+        cakeModelProps: newElement
+      });
+      
+      // Track the index of the new element
+      newElementIndices.push(currentElementCount + i);
     });
     
-    // Select the newly added element
+    // Select the newly added elements after a delay
     setTimeout(() => {
-      setSelectedElementIndices([cakeState.elements.length]);
-    }, 10);
-  };
-
-  const handleLoadDesign = async (designId) => {
-  console.log("DecorationCanvas: handleLoadDesign called with ID:", designId);
-  try {
-    setLoadingDesign(true);
+      setSelectedElementIndices(newElementIndices);
+    }, 150);
     
-    // Call the context function to load the design
-    const design = await loadCakeDesign(designId);
-    console.log("DecorationCanvas: Design loaded:", design);
+    // Visual feedback
+   console.log(
+      `${copiedElements.length > 1 
+        ? `${copiedElements.length} elements` 
+        : 'Element'} pasted with exact size and rotation`
+    );
     
-    // Reset selections
-    setSelectedElementIndices([]);
-    setIsTextSelected(false);
+    return;
+  }
+  
+  // Handle pasting text
+  if (clipboardType === 'text' && copiedElements[0]) {
+    const textData = copiedElements[0];
     
-    // Reset camera position (optional)
-    if (orbitControlsRef.current) {
-      orbitControlsRef.current.reset();
+    // Update the text properties in cake state
+    dispatch({ type: "SET_MESSAGE", payload: textData.message });
+    dispatch({ type: "SET_MESSAGE_COLOR", payload: textData.color });
+    dispatch({ type: "SET_MESSAGE_FONT", payload: textData.font });
+    
+    // Position with a slight offset
+    const offsetPosition = [
+      textData.position[0] + 0.3,
+      textData.position[1], 
+      textData.position[2] + 0.3
+    ];
+    
+    dispatch({ type: "SET_MESSAGE_POSITION", payload: offsetPosition });
+    
+    if (textData.rotation) {
+      dispatch({ type: "SET_MESSAGE_ROTATION", payload: textData.rotation });
     }
     
-    // Show success message
-    toast.success("Design loaded successfully");
+    // Select the text after a short delay
+    setTimeout(() => {
+      setIsTextSelected(true);
+      setSelectedElementIndices([]);
+    }, 50);
     
-    // Return the design so the parent component can update tabs
-    return design;
-  } catch (error) {
-    console.error("DecorationCanvas: Error loading design:", error);
-    toast.error("Failed to load design");
-    throw error;
-  } finally {
-    setLoadingDesign(false);
+    // Visual feedback
+    console.log("Text pasted");
   }
 };
   
+  // Add this component and then include it in your JSX
+
+// Copy/Paste status indicator
+const ClipboardIndicator = () => {
+  if (!clipboardType) return null;
+  
+  return (
+    <div className="absolute top-2 right-2 z-10 bg-white px-3 py-1 rounded-full shadow-md text-sm">
+      <div className="flex items-center">
+        <span className="mr-1">
+          {clipboardType === 'elements' 
+           ? `${copiedElements.length} element${copiedElements.length > 1 ? 's' : ''} copied` 
+           : 'Text copied'}
+        </span>
+        <span className="text-xs opacity-50">Press Ctrl+V to paste</span>
+      </div>
+    </div>
+  );
+};
+
+// Add this to your return JSX, near the top
+<ClipboardIndicator />
+
   // Add this near the top of your component, with your other refs
 const rendererRef = useRef(null);
 
@@ -679,6 +1105,83 @@ const CanvasScreenshot = ({ onScreenshot }) => {
   return null;
 };
 
+  // Keyboard shortcuts for copy-paste and delete
+// Keyboard shortcuts for copy-paste and delete
+
+// First define the delete function with useCallback
+const handleDeleteSelected = useCallback(() => {
+  // Delete selected elements
+  if   (selectedElementIndices.length > 0) {
+    // Sort indices in descending order to prevent index shifting issues
+    const sortedIndices = [...selectedElementIndices].sort((a, b) => b - a);
+    
+    console.log("Deleting elements at indices:", sortedIndices);
+    
+    // Delete each selected element
+    sortedIndices.forEach(index => {
+      dispatch({ 
+        type: "REMOVE_ELEMENT", 
+        index 
+      });
+    });
+    
+    // Clear selection after deletion
+    setSelectedElementIndices([]);
+    
+    // Show feedback
+    console.log(`Deleted ${selectedElementIndices.length > 1 ? `${selectedElementIndices.length} elements` : 'element'}`);
+  } 
+  // Delete text if selected
+  else if (isTextSelected) {
+    dispatch({ type: "SET_MESSAGE", payload: "" });
+    setIsTextSelected(false);
+    console.log("Text deleted");
+  }
+  // Nothing selected
+  else {
+    console.log("Select an element or text to delete");
+  }
+}, [selectedElementIndices, isTextSelected, dispatch]);
+
+useEffect(() => {
+  const handleKeyDown = (e) => {
+    // Skip if we're in a text field
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+      return;
+    }
+    
+    const isCopy = (e.key === 'c' || e.key === 'C') && (e.ctrlKey || e.metaKey);
+    const isPaste = (e.key === 'v' || e.key === 'V') && (e.ctrlKey || e.metaKey);
+    const isCut = (e.key === 'x' || e.key === 'X') && (e.ctrlKey || e.metaKey);
+    const isDelete = e.key === 'Delete' || e.key === 'Backspace';
+    
+    console.log("Key event:", e.key, "Selected indices:", selectedElementIndices);
+    
+    if (isCopy) {
+      e.preventDefault();
+      handleCopyElement();
+    } 
+    else if (isPaste) {
+      e.preventDefault();
+      handlePasteElement();
+    }
+    else if (isCut) {
+      e.preventDefault();
+      handleCopyElement();
+      handleDeleteSelected();
+    }
+    else if (isDelete) {
+      e.preventDefault();
+      console.log("Delete key pressed, selected indices:", selectedElementIndices);
+      handleDeleteSelected();
+    }
+  };  
+  
+  window.addEventListener('keydown', handleKeyDown);
+  return () => window.removeEventListener('keydown', handleKeyDown);
+}, [selectedElementIndices, isTextSelected, copiedElements, clipboardType, handleDeleteSelected]);
+
+
   return (
     <div className="relative">
       <div className="absolute top-2 left-2 z-10 flex gap-2">
@@ -710,16 +1213,24 @@ const CanvasScreenshot = ({ onScreenshot }) => {
           <RotateCcw size={18} />
         </button>
         <button
-          className="p-2 rounded-full bg-white shadow-md text-gray-800 hover:bg-gray-100"
+          className={`p-2 rounded-full bg-white shadow-md ${
+            selectedElementIndices.length > 0 || isTextSelected 
+              ? "text-gray-800 hover:bg-gray-100" 
+              : "text-gray-400"
+          }`}
+          disabled={selectedElementIndices.length === 0 && !isTextSelected}
           onClick={handleCopyElement}
-          aria-label="Copy"
+          title="Copy (Ctrl+C)"
         >
           <Copy size={18} />
         </button>
         <button
-          className="p-2 rounded-full bg-white shadow-md text-gray-800 hover:bg-gray-100"
+          className={`p-2 rounded-full bg-white shadow-md ${
+            clipboardType ? "text-gray-800 hover:bg-gray-100" : "text-gray-400"
+          }`}
+          disabled={!clipboardType}
           onClick={handlePasteElement}
-          aria-label="Paste"
+          title="Paste (Ctrl+V)"
         >
           <ClipboardPaste size={18} />
         </button>
@@ -880,6 +1391,9 @@ const CanvasScreenshot = ({ onScreenshot }) => {
               selectedElement={selectedObject}
               transformMode={transformMode}
               onPositionChange={handlePositionChange}
+              onRotationChange={handleRotationChange} // Pass the new handler
+              selectedElementIndices={selectedElementIndices} // Pass the selected indices
+              dispatch={dispatch} // Pass the dispatch function
             />
           )}
           {cakeState.message && (
@@ -888,9 +1402,33 @@ const CanvasScreenshot = ({ onScreenshot }) => {
               message={cakeState.message}
               color={cakeState.messageColor || "#000000"}
               fontStyle={cakeState.messageFont || "script"}
-              onClick={handleTextClick} // Add click handler to select text
+              scale={cakeState.messageScale || 0.15} // Add this line to pass the scale
+              onClick={handleTextClick}
             />
           )}
+            <FrostingDrawer 
+              active={frostingActive}
+              color={frostingColor}
+              size={frostingSize}
+            />
+         {cakeState.frosting && cakeState.frosting.map((frostingGroup, groupIndex) => (
+  <group key={`frostingGroup-${groupIndex}`}>
+    {frostingGroup.balls.map((ball, ballIndex) => (
+      <Sphere
+        key={`saved-frosting-${groupIndex}-${ballIndex}`}
+        args={[ball.size, 8, 8]}
+        position={[ball.position[0], ball.position[1], ball.position[2]]}
+      >
+        <meshStandardMaterial
+          color={ball.color}
+          roughness={0.3}
+          metalness={0.1}
+        />
+      </Sphere>
+    ))}
+  </group>
+))}
+
           {isTextSelected && textRef.current && (
             <>
               {/* Debug sphere to visualize the position */}
