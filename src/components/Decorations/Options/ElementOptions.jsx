@@ -5,15 +5,14 @@ const ElementOptions = () => {
   const { cakeState, dispatch } = useCakeContext();
 
   const categories = [
-    { id: "sprinkles", name: "Sprinkles" },
+   /* { id: "sprinkles", name: "Sprinkles" }, */
     { id: "candles" , name: "Candles" },
     { id: "flowers", name: "Flowers" },
     { id: "fruits", name: "Fruits" },
-    { id: "candies", name: "Candies" },
+    /*{ id: "candies", name: "Candies" }, 
+     */
   ];
-
-  const [activeCategory, setActiveCategory] = React.useState("sprinkles");
-
+  const [activeCategory, setActiveCategory] = React.useState("flowers");
   const elements = {
     /* sprinkles: [
       { 
