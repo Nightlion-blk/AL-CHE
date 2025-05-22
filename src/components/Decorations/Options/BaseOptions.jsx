@@ -13,8 +13,9 @@ const BaseOptions = () => {
     color: { primary: "#fff0f5" },
     targetedMeshName: ["RoundedBase"],
     textures: new Map(),
-    price: 30.0,
+    price: 70.0,
     description: "Classic rounded edges for a soft, elegant look",
+    image: "/tresD-SE/img/CAKE_b_placeholder.png"
   },
   
   {
@@ -25,8 +26,9 @@ const BaseOptions = () => {
     color: { primary: "#fff0f5" },
     targetedMeshName: ["RoundedBase"],
     textures: new Map(),
-    price: 60.0,
+    price: 130.0,
     description: "Classic rounded edges for a soft, elegant look",
+    image: "/tresD-SE/img/CAKE_b2_placeholder.png"
   },
 
   {
@@ -37,12 +39,14 @@ const BaseOptions = () => {
     color: { primary: "#fff0f5" },
     targetedMeshName: ["RoundedBase"],
     textures: new Map(),
-    price: 30.0,
+    price: 200.0,
     description: "Classic rounded edges for a soft, elegant look",
+    image: "/tresD-SE/img/CAKE_b3_placeholder.png"
   },
 
 
   ]
+  
   const handleSelectCake = (cakeId) => {
     const cake = cakeOptions.find((c) => c.id === cakeId);
     dispatch({ type: "SET_CAKE_TYPE", payload: cakeId, cakeModelProps: cake });
@@ -63,7 +67,17 @@ const BaseOptions = () => {
             onClick={() => handleSelectCake(cake.id)}
           >
             <div className="h-24 w-24 bg-gray-100 rounded flex items-center justify-center mb-2">
-              <div className="w-20 h-20 bg-gray-300 rounded-lg"></div>
+              {cake.image ? (
+                <img 
+                  src={cake.image} 
+                  alt={cake.name} 
+                  className="w-20 h-20 object-cover rounded-lg"
+                />
+              ) : (
+                <div className="w-20 h-20 bg-gray-300 rounded-lg flex items-center justify-center">
+                  <span className="text-xs text-gray-500">No image</span>
+                </div>
+              )}
             </div>
             <span className="font-medium text-sm text-center">{cake.name}</span>
             <span className="text-gray-600 text-sm">
