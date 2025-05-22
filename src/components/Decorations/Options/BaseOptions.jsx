@@ -15,7 +15,7 @@ const BaseOptions = () => {
     textures: new Map(),
     price: 70.0,
     description: "Classic rounded edges for a soft, elegant look",
-    image: "/tresD-SE/img/CAKE_b_placeholder.png"
+    image: "/tresD-SE/img/round1.PNG"
   },
   
   {
@@ -28,7 +28,7 @@ const BaseOptions = () => {
     textures: new Map(),
     price: 130.0,
     description: "Classic rounded edges for a soft, elegant look",
-    image: "/tresD-SE/img/CAKE_b2_placeholder.png"
+    image: "/tresD-SE/img/round2.PNG"
   },
 
   {
@@ -41,12 +41,10 @@ const BaseOptions = () => {
     textures: new Map(),
     price: 200.0,
     description: "Classic rounded edges for a soft, elegant look",
-    image: "/tresD-SE/img/CAKE_b3_placeholder.png"
+    image: "/tresD-SE/img/round3.PNG"
   },
 
-
   ]
-  
   const handleSelectCake = (cakeId) => {
     const cake = cakeOptions.find((c) => c.id === cakeId);
     dispatch({ type: "SET_CAKE_TYPE", payload: cakeId, cakeModelProps: cake });

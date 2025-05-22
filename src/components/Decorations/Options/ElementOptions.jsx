@@ -50,7 +50,8 @@ const ElementOptions = () => {
         position: [0, 1, 0],
         scale: [0.5, 0.5, 0.5],
         rotation: [0, 0, 0],  // Default upright position
-        price: 20.0 
+        price: 20.0,
+        image: "/tresD-SE/img/rose.PNG"
       },
       { 
         id: "sunflower", 
@@ -59,16 +60,8 @@ const ElementOptions = () => {
         position: [0, 1, 0],
         scale: [0.5, 0.5, 0.5],
         rotation: [0, 0, 0],  // Default upright position
-        price: 20.0 
-      },
-      { 
-        id: "orchid", 
-        name: "Orchid", 
-        path: "tresD-SE/CAKE-B-3layer/PuttingObjects/Flowers/Orchid.glb", 
-        position: [0, 1, 0],
-        scale: [0.5, 0.5, 0.5],
-        rotation: [0, 0, 0],  // Default upright position
-        price: 5.0 
+        price: 40.0,
+        image: "/tresD-SE/img/Sunflower.PNG"  
       },
     ],
 
@@ -80,7 +73,18 @@ const ElementOptions = () => {
         position: [0, 1, 0],
         scale: [0.5, 0.5, 0.5],
         rotation: [-Math.PI/2, 0, 0],  // Flat on the cake
-        price: 3.0 
+        price: 15.0,
+        image: "/tresD-SE/img/strawberryslice.PNG"
+      },
+       { 
+        id: "strawberry", 
+        name: "Strawberry", 
+        path: "tresD-SE/CAKE-B-3layer/PuttingObjects/Strawberry.glb", 
+        position: [0, 1, 0],
+        scale: [0.5, 0.5, 0.5],
+        rotation: [-Math.PI/2, 0, 0],  // Flat on the cake
+        price: 30.0,
+        image: "/tresD-SE/img/strawberry.PNG"
       },
       { 
         id: "blueberry", 
@@ -89,7 +93,8 @@ const ElementOptions = () => {
         position: [0, 1, 0],
         scale: [1, 1, 1], // Changed from 0.5 to 0.1 to match Blender scale
         rotation: [0, 0, 0],  // Default position
-        price: 3.0 
+        price: 3.0,
+        image: "/tresD-SE/img/blueberry.PNG"
       },
       { 
         id: "kiwi-slices", 
@@ -298,10 +303,18 @@ const ElementOptions = () => {
             }
           >
             <div className="h-16 w-16 bg-gray-100 rounded-lg flex items-center justify-center mb-2">
-              {element.path ? (
+              {element.image ? (
+                <img 
+                  src={element.image} 
+                  alt={element.name} 
+                  className="w-14 h-14 object-cover rounded-lg"
+                />
+              ) : element.path ? (
                 <span className="text-xs text-green-500">3D Model</span>
               ) : (
-                <div className="w-12 h-12 bg-gray-300 rounded"></div>
+                <div className="w-12 h-12 bg-gray-300 rounded flex items-center justify-center">
+                  <span className="text-xs text-gray-500">No image</span>
+                </div>
               )}
             </div>
             <span className="font-medium text-sm text-center">
@@ -313,6 +326,7 @@ const ElementOptions = () => {
           </div>
         ))}
       </div>
+
 
       {cakeState.elements.length > 0 && (
         <div className="mt-6 p-4 bg-gray-50 rounded-lg">
