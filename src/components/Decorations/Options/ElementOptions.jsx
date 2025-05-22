@@ -15,7 +15,7 @@ const ElementOptions = () => {
   const [activeCategory, setActiveCategory] = React.useState("sprinkles");
 
   const elements = {
-    sprinkles: [
+    /* sprinkles: [
       { 
         id: "rainbow-sprinkles", 
         name: "Rainbow Sprinkles", 
@@ -40,7 +40,7 @@ const ElementOptions = () => {
         price: 2.5,
         rotation: [0, 0, 0]
       },
-    ],
+    ], */
     
     flowers: [
       { 
@@ -95,19 +95,7 @@ const ElementOptions = () => {
         rotation: [0, 0, 0],  // Default position
         price: 3.0,
         image: "/tresD-SE/img/blueberry.PNG"
-      },
-      { 
-        id: "kiwi-slices", 
-        name: "Kiwi Slices", 
-        price: 3.5,
-        rotation: [-Math.PI/2, 0, 0]  // Flat on the cake
-      },
-      { 
-        id: "raspberry", 
-        name: "Raspberry", 
-        price: 4.0,
-        rotation: [0, 0, 0]
-      },
+      }
     ],
     
     candles: [
@@ -202,6 +190,7 @@ const ElementOptions = () => {
         price: 3.0 
       }
     ],
+    /*
     candies: [
       { 
         id: "chocolate-chips", 
@@ -227,8 +216,8 @@ const ElementOptions = () => {
         price: 3.0,
         rotation: [0, 0, 0]
       },
-    ],
-  };
+    ],*/
+  }; 
 
   const handleAddElement = (element) => {
     // Create the appropriate cakeModelProps object for the ADD_ELEMENT action

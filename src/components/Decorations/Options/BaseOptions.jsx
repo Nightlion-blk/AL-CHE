@@ -17,7 +17,6 @@ const BaseOptions = () => {
     description: "Classic rounded edges for a soft, elegant look",
     image: "/tresD-SE/img/round1.PNG"
   },
-  
   {
       id: "ROUND2",
     name: "ROUND CAKE LAYER-2",
@@ -32,7 +31,7 @@ const BaseOptions = () => {
   },
 
   {
-      id: "ROUND3",
+    id: "ROUND3",
     name: "ROUND CAKE LAYER-3",
     path: "/tresD-SE/CAKE B/CAKE_B_3L_RENAME.glb", // <-- correct path
     position: [0, 0, 0],
